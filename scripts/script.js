@@ -5,6 +5,7 @@ let nextPostId=1;
 let isSyncing=false;
 let lastLoadTime=0;
 let cacheData=null;
+let allThreadsCache=[];
 
 const GIST_ID='769dce8a044d2d8dc2b21a2f60719c58';
 const DECODE_TIMES=1;
@@ -62,7 +63,8 @@ async function loadFromGist(force=false){
     const now=Date.now();
     if(!force && cacheData && (now-lastLoadTime)<CACHE_TIME){
         if(cacheData.threads){
-            threadsData=cacheData.threads.filter(t=>t.board===CURRENT_BOARD);
+            allThreadsCache=cacheData.threads;
+            threadsData=allThreadsCache.filter(t=>t.board===CURRENT_BOARD);
             renderAllThreads();
             updateSyncStatus('✅ Кэш');
         }
@@ -74,12 +76,12 @@ async function loadFromGist(force=false){
         if(!res.ok)throw new Error();
         const data=await res.json();
         cacheData=data;
+        allThreadsCache=data.threads||[];
         lastLoadTime=now;
         if(data&&data.threads){
-            const all=data.threads;
-            threadsData=all.filter(t=>t.board===CURRENT_BOARD);
-            nextThreadId=data.nextThreadId||Math.max(...all.map(t=>t.id),0)+1;
-            nextPostId=data.nextPostId||(Math.max(...all.flatMap(t=>[t.id,...(t.replies||[]).map(r=>r.id)]),0)+1);
+            threadsData=allThreadsCache.filter(t=>t.board===CURRENT_BOARD);
+            nextThreadId=data.nextThreadId||Math.max(...allThreadsCache.map(t=>t.id),0)+1;
+            nextPostId=data.nextPostId||(Math.max(...allThreadsCache.flatMap(t=>[t.id,...(t.replies||[]).map(r=>r.id)]),0)+1);
             renderAllThreads();
             updateSyncStatus('✅ Загружено');
         }else{loadDemoData();}
@@ -95,31 +97,63 @@ async function saveToGist(){
     isSyncing=true;
     try{
         updateSyncStatus('💾 Сохранение...');
-        let allThreads=[];
-        const existing=await fetch(GIST_RAW_URL).catch(()=>null);
-        if(existing&&existing.ok){
-            const old=await existing.json();
-            if(old&&old.threads){
-                const other=old.threads.filter(t=>t.board!==CURRENT_BOARD);
-                allThreads=[...other,...threadsData];
-            }else{allThreads=threadsData;}
-        }else{allThreads=threadsData;}
-        const toSave={threads:allThreads,nextThreadId,nextPostId,lastUpdate:new Date().toISOString()};
-        await fetch(GIST_URL,{
+        
+        let otherBoards=[];
+        try{
+            const existingRes=await fetch(GIST_RAW_URL,{cache:'no-store'});
+            if(existingRes.ok){
+                const existingData=await existingRes.json();
+                if(existingData&&existingData.threads){
+                    otherBoards=existingData.threads.filter(t=>t.board!==CURRENT_BOARD);
+                }
+            }
+        }catch(e){}
+        
+        const allThreads=[...otherBoards,...threadsData];
+        const toSave={
+            threads:allThreads,
+            nextThreadId:nextThreadId,
+            nextPostId:nextPostId,
+            lastUpdate:new Date().toISOString()
+        };
+        
+        const response=await fetch(GIST_URL,{
             method:'PATCH',
-            headers:{'Authorization':`token ${GITHUB_TOKEN}`,'Content-Type':'application/json'},
-            body:JSON.stringify({files:{'9chan_data.json':{content:JSON.stringify(toSave)}}})
+            headers:{
+                'Authorization':`token ${GITHUB_TOKEN}`,
+                'Content-Type':'application/json',
+                'Accept':'application/vnd.github.v3+json'
+            },
+            body:JSON.stringify({
+                files:{
+                    '9chan_data.json':{
+                        content:JSON.stringify(toSave,null,2)
+                    }
+                }
+            })
         });
+        
+        if(!response.ok)throw new Error(`HTTP ${response.status}`);
+        
         updateSyncStatus('✅ Сохранено');
         saveToLocal();
         cacheData=toSave;
+        allThreadsCache=allThreads;
         lastLoadTime=Date.now();
-    }catch(e){updateSyncStatus('⚠️ Ошибка',true);saveToLocal();}
-    finally{isSyncing=false;}
+        
+    }catch(e){
+        console.error('Save error:',e);
+        updateSyncStatus('⚠️ Ошибка',true);
+        saveToLocal();
+    }
+    finally{
+        isSyncing=false;
+    }
 }
 
 function saveToLocal(){
     localStorage.setItem(`9chan_${CURRENT_BOARD}`,JSON.stringify(threadsData));
+    localStorage.setItem(`9chan_all_${CURRENT_BOARD}`,JSON.stringify(allThreadsCache));
 }
 
 function loadFromLocal(){
@@ -133,23 +167,35 @@ function loadFromLocal(){
 
 function loadDemoData(){
     threadsData=[{
-        id:1,board:CURRENT_BOARD,subject:`Добро пожаловать на /${CURRENT_BOARD}/`,
-        name:'Admin',comment:`🇩🇪 Добро пожаловать! Создавайте треды и общайтесь!`,
-        fileData:null,timestamp:new Date().toLocaleString(),replies:[]
+        id:1,
+        board:CURRENT_BOARD,
+        subject:`Добро пожаловать на /${CURRENT_BOARD}/`,
+        name:'Admin',
+        comment:`🇩🇪 Добро пожаловать! Создавайте треды и общайтесь!`,
+        fileData:null,
+        timestamp:new Date().toLocaleString(),
+        replies:[]
     }];
     renderAllThreads();
     saveToGist();
 }
 
-async function syncAfterAction(fn){await fn();await saveToGist();}
+async function syncAfterAction(fn){
+    await fn();
+    await saveToGist();
+}
 
 function renderAllThreads(){
     const c=document.getElementById('threadsContainer');
     if(!c)return;
-    if(!threadsData.length){c.innerHTML='<div class="loading-message">📭 Нет тредов. Создайте первый!</div>';updateStats();return;}
+    if(!threadsData.length){
+        c.innerHTML='<div class="loading-message">📭 Нет тредов. Создайте первый!</div>';
+        updateStats();
+        return;
+    }
     let html='';
     for(let t of threadsData){
-        html+=`<div class="thread-card"><div class="thread-header"><span class="thread-title">${escapeHtml(t.subject||'Без темы')}</span><span class="thread-info">№${t.id} ${escapeHtml(t.name||'Аноним')} ${t.timestamp}</span></div>${t.fileData?`<img class="thread-image" src="${t.fileData}">`:''}<div class="thread-comment">${escapeHtml(t.comment).replace(/\n/g,'<br>')}</div><button class="reply-btn" data-id="${t.id}">💬 Ответить</button><div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div><div class="reply-form" id="reply-form-${t.id}" style="display:none"><input type="text" id="replyName-${t.id}" placeholder="Имя"><textarea id="replyComment-${t.id}" rows="2" placeholder="Текст"></textarea><div><span id="captcha-mini-${t.id}"></span><input type="text" id="captcha-mini-ans-${t.id}" placeholder="Ответ" style="width:80px"></div><button class="submit-reply" data-id="${t.id}">Отправить</button><button class="cancel-reply" data-id="${t.id}">Отмена</button></div></div>`;
+        html+=`<div class="thread-card"><div class="thread-header"><span class="thread-title">${escapeHtml(t.subject||'Без темы')}</span><span class="thread-info">№${t.id} ${escapeHtml(t.name||'Аноним')} ${t.timestamp}</span></div>${t.fileData?`<img class="thread-image" src="${t.fileData}">`:''}<div class="thread-comment">${escapeHtml(t.comment).replace(/\n/g,'<br>')}</div><button class="reply-btn" data-id="${t.id}">💬 Ответить</button><div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div><div class="reply-form" id="reply-form-${t.id}" style="display:none; margin-top:10px;"><input type="text" id="replyName-${t.id}" placeholder="Имя" style="width:100%;margin-bottom:5px;padding:5px;"><textarea id="replyComment-${t.id}" rows="2" placeholder="Текст" style="width:100%;margin-bottom:5px;padding:5px;"></textarea><div style="margin-bottom:5px;"><span id="captcha-mini-${t.id}"></span><input type="text" id="captcha-mini-ans-${t.id}" placeholder="Ответ" style="width:80px;margin-left:10px;"></div><button class="submit-reply" data-id="${t.id}" style="margin-right:5px;">Отправить</button><button class="cancel-reply" data-id="${t.id}">Отмена</button></div></div>`;
     }
     c.innerHTML=html;
     attachEvents();
@@ -158,10 +204,10 @@ function renderAllThreads(){
 }
 
 function renderReplies(r){
-    if(!r||!r.length)return'<div class="no-replies">💬 Нет ответов</div>';
+    if(!r||!r.length)return'<div class="no-replies" style="color:#777;padding:5px;">💬 Нет ответов</div>';
     let html='';
     for(let rep of r){
-        html+=`<div class="reply"><strong>${escapeHtml(rep.name||'Аноним')}</strong> ${rep.timestamp}${rep.fileData?`<div><img src="${rep.fileData}" style="max-width:100px"></div>`:''}<div>${escapeHtml(rep.comment)}</div></div>`;
+        html+=`<div class="reply" style="background:#1a1a1a;margin-top:10px;padding:8px;border-radius:8px;"><strong>${escapeHtml(rep.name||'Аноним')}</strong> <span style="color:#888;font-size:11px;">${rep.timestamp}</span>${rep.fileData?`<div><img src="${rep.fileData}" style="max-width:100px;border-radius:5px;"></div>`:''}<div>${escapeHtml(rep.comment)}</div></div>`;
     }
     return html;
 }
@@ -194,10 +240,14 @@ function attachEvents(){
         btn.onclick=function(){
             const id=this.dataset.id;
             const f=document.getElementById(`reply-form-${id}`);
-            if(f)f.style.display=f.style.display==='block'?'none':'block';
-            if(f.style.display==='block')generateMiniCaptchas();
+            if(f){
+                const isVisible=f.style.display==='block';
+                f.style.display=isVisible?'none':'block';
+                if(!isVisible)generateMiniCaptchas();
+            }
         };
     });
+    
     document.querySelectorAll('.cancel-reply').forEach(btn=>{
         btn.onclick=function(){
             const id=this.dataset.id;
@@ -205,6 +255,7 @@ function attachEvents(){
             if(f)f.style.display='none';
         };
     });
+    
     document.querySelectorAll('.submit-reply').forEach(btn=>{
         btn.onclick=async function(){
             const id=parseInt(this.dataset.id);
@@ -216,13 +267,24 @@ function attachEvents(){
                 const t=threadsData.find(t=>t.id===id);
                 if(t){
                     t.replies=t.replies||[];
-                    t.replies.push({id:nextPostId++,name:name||'Аноним',comment:comment,fileData:null,timestamp:new Date().toLocaleString()});
+                    t.replies.push({
+                        id:nextPostId++,
+                        name:name||'Аноним',
+                        comment:comment,
+                        fileData:null,
+                        timestamp:new Date().toLocaleString()
+                    });
                     renderAllThreads();
                 }
             });
-            document.getElementById(`reply-form-${id}`).style.display='none';
-            document.getElementById(`replyName-${id}`).value='';
-            document.getElementById(`replyComment-${id}`).value='';
+            const formDiv=document.getElementById(`reply-form-${id}`);
+            if(formDiv)formDiv.style.display='none';
+            const nameInput=document.getElementById(`replyName-${id}`);
+            const commentInput=document.getElementById(`replyComment-${id}`);
+            const captchaInput=document.getElementById(`captcha-mini-ans-${id}`);
+            if(nameInput)nameInput.value='';
+            if(commentInput)commentInput.value='';
+            if(captchaInput)captchaInput.value='';
         };
     });
 }
@@ -231,7 +293,16 @@ function escapeHtml(s){if(!s)return '';return s.replace(/[&<>]/g,m=>m==='&'?'&am
 function updateStats(){const e=document.getElementById('threadCount');if(e)e.innerText=threadsData.length;}
 
 async function createThread(subj,name,com,file){
-    const t={id:nextThreadId++,board:CURRENT_BOARD,subject:subj||'',name:name||'Аноним',comment:com,fileData:file,timestamp:new Date().toLocaleString(),replies:[]};
+    const t={
+        id:nextThreadId++,
+        board:CURRENT_BOARD,
+        subject:subj||'',
+        name:name||'Аноним',
+        comment:com,
+        fileData:file,
+        timestamp:new Date().toLocaleString(),
+        replies:[]
+    };
     threadsData.unshift(t);
     renderAllThreads();
     await saveToGist();
