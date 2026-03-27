@@ -31,6 +31,7 @@ body {
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
+    gap: 15px;
 }
 
 .logo-area {
@@ -95,6 +96,26 @@ h1 {
 .header-links a:hover {
     color: #d4af37;
     text-decoration: underline;
+}
+
+.sync-status-bar {
+    background: #00000099;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid #d4af37;
+}
+
+.sync-status {
+    font-size: 0.7rem;
+    color: #d4af37;
+}
+
+.sync-status.success {
+    color: #4caf50;
+}
+
+.sync-status.error {
+    color: #f44336;
 }
 
 .banner-deutsch {
@@ -354,4 +375,4 @@ h1 {
     text-align: center;
     padding: 40px;
     color: #aaa;
-} 
+}
