@@ -1,31 +1,439 @@
 (function(){
-let a=[],b=1,c=1,d=false,e=[],f='769dce8a044d2d8dc2b21a2f60719c58',g=10;
-function h(i,j){let k=i;for(let l=0;l<j;l++){k=atob(k);}return k;}
+let threadsData=[];
+let nextThreadId=1;
+let nextPostId=1;
+let isSyncing=false;
+let syncQueue=[];
+
+const GIST_ID='769dce8a044d2d8dc2b21a2f60719c58';
+const DECODE_TIMES=10;
+
+function decodeToken(encoded,times){
+    let result=encoded;
+    for(let i=0;i<times;i++){
+        result=atob(result);
+    }
+    return result;
+}
+
 const m='Vm0wd2QyVkhVWGhVV0d4V1YwZG9WbFl3WkRSV1ZsbDNXa1JTVjAxV2JETlhhMk0xWVVaS2MxTnNXbFpOYWtFeFdWZDRZV014WkhWalJtUk9ZV3RhU1ZkV1dsWmxSbGw1Vkd0c2FGSnRVbFJVVkVaTFZWWmtWMXBFVWxSTmF6RTFWVEowVjFadFNraFZhemxhWWxob1RGWldXbXRXTVd0NllVWlNUbFpYZHpCV2Fra3hVakZaZVZOcmJGSmlSMmhZV1d4b2IxWXhjRlpYYlVacVlraENSbFpYZUZkVWJGcFZWbXRzVjJKVVFYaFdSRVpXWlZaT2NtSkdTbWxTTW1oWlYxZDRiMVV3TUhoV1dHaFlZbFZhY1ZSV1dtRmxWbkJHVjJ4a1ZXSlZXVEpXYlhCaFZqSkZlVlJZYUZaaGExcFhXbFphUzJOV1pITmFSMnhYVWpOb1dGWnRNREZrTVZsNVZXeGthbEpXV2xSWmJGWmhZMVpTVjFkdVpFNVNia0pIVjJ0ak5WWlhTa2RqUkVKaFUwaENTRlpxU2tabFZsWnhWR3hvVjJKSVFubFdWRUpoVkRKU1YxWnVVbWhTYXpWd1ZqQmtiMWRzV1hoWGJFNVRUVmQ0V0ZaWGRHdFdiVXBJWVVoT1ZtRnJOVlJXTVZwWFkxWkdWVkZyTldsU2JrRjNWMnhXWVdFeFduSk5WbVJxVWxkU1dGUlhOVU5UUmxweFVtMUdWMDFyTlVoV1J6RkhWVEZLVjJORlZsZGlSMUV3VlZSR1lWWnJNVlpXYXpWVFVrVkZOUT09';
-const n=h(m,g);
-const o=`https://api.github.com/gists/${f}`;
-const p=`https://gist.githubusercontent.com/AlgorithmIntensity/${f}/raw/9chan_data.json`;
-const q=document.getElementById('mascotDynamic');
-if(q){let r=document.createElement('img');r.src='buhhh.png';r.alt='mascot';r.style.width='48px';r.style.height='48px';r.style.objectFit='contain';r.style.borderRadius='50%';q.innerHTML='';q.appendChild(r);}
-function s(t,u){let v=document.getElementById('syncStatusText');if(v){v.textContent=t;v.className=u?'sync-status error':'sync-status';if(!u){setTimeout(()=>{if(v.textContent===t){v.textContent='✅ Синхронизировано';setTimeout(()=>{if(v.textContent==='✅ Синхронизировано'){v.textContent='🔄 Готово';}},2000);}},1500);}}}
-async function w(){try{s('📥 Загрузка...');let x=await fetch(p);if(!x.ok)throw new Error(`HTTP ${x.status}`);let y=await x.json();if(y&&y.threads){a=y.threads;b=y.nextThreadId||Math.max(...a.map(z=>z.id),0)+1;c=y.nextPostId||(Math.max(...a.flatMap(z=>[z.id,...z.replies.map(A=>A.id)]),0)+1);E();s('✅ Загружено');}else{B();}}catch(C){console.error('Ошибка:',C);s('⚠️ Офлайн',true);D();}}
-async function F(){if(d){e.push(F);return;}d=true;try{s('💾 Сохранение...');let G={threads:a,nextThreadId:b,nextPostId:c,lastUpdate:new Date().toISOString()};let H=await fetch(o,{method:'PATCH',headers:{'Authorization':`token ${n}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},body:JSON.stringify({files:{'9chan_data.json':{content:JSON.stringify(G,null,2)}}})});if(!H.ok)throw new Error(`HTTP ${H.status}`);s('✅ Сохранено');I();}catch(J){console.error('Ошибка:',J);s('⚠️ Ошибка',true);I();}finally{d=false;if(e.length>0){let K=e.shift();K();}}}
-function I(){localStorage.setItem('9chan_threads_backup',JSON.stringify(a));localStorage.setItem('9chan_nextThreadId_backup',b);localStorage.setItem('9chan_nextPostId_backup',c);}
-function D(){let L=localStorage.getItem('9chan_threads_backup');if(L&&L!=='[]'){a=JSON.parse(L);let M=localStorage.getItem('9chan_nextThreadId_backup');let N=localStorage.getItem('9chan_nextPostId_backup');if(M)b=parseInt(M,10);if(N)c=parseInt(N,10);E();s('📱 Локально');}else{B();}}
-function B(){let O=[{id:1,subject:'Добро пожаловать на 9chan',name:'Администрация',comment:'🇩🇪 Willkommen auf 9chan! 🇩🇪\n\nЭто имиджборд с немецким стилем. Все данные синхронизируются через GitHub Gist!\n\n• Создавайте треды\n• Прикрепляйте изображения\n• Отвечайте в тредах\n\nВсе изменения автоматически сохраняются на сервер.',fileData:null,fileName:null,fileType:null,timestamp:new Date().toLocaleString(),replies:[{id:1,name:'Первый анон',comment:'Отличный борд! Синхронизация работает 🔥',fileData:null,fileName:null,fileType:null,timestamp:new Date().toLocaleString()}]}];a=O;b=2;c=2;E();F();}
-async function P(Q){await Q();await F();}
-function R(){let S=document.getElementById('threadCount');let T=document.getElementById('postCount');if(S)S.innerText=a.length;if(T){let U=a.length;for(let V of a){U+=V.replies.length;}T.innerText=U;}}
-function E(){let W=document.getElementById('threadsContainer');if(!W)return;if(a.length===0){W.innerHTML='<div class="loading-message">📭 Тредов нет. Создайте первый тред!</div>';R();return;}let X='';for(let Y of a){X+=`<div class="thread-card" data-thread-id="${Y.id}"><div class="thread-header"><span class="thread-title">${Z(Y.subject||'Без темы')}</span><span class="thread-info">№${Y.id} ${Z(Y.name||'Аноним')} ${Y.timestamp}</span></div>${Y.fileData?`<img class="thread-image" src="${Y.fileData}" alt="image" loading="lazy">`:''}<div class="thread-comment">${Z(Y.comment).replace(/\n/g,'<br>')}</div><button class="reply-button" data-id="${Y.id}">💬 Ответить</button><div class="replies-container" id="replies-${Y.id}">${_0(Y.replies,Y.id)}</div><div class="reply-form-placeholder" id="reply-form-${Y.id}" style="display:none; margin-top:12px;"><div class="form-row" style="flex-direction:column;"><input type="text" id="replyName-${Y.id}" placeholder="Имя (опционально)" maxlength="50" style="background:#232323;border:1px solid #d4af37;padding:8px;border-radius:8px;color:white;"><textarea id="replyComment-${Y.id}" rows="2" placeholder="Текст ответа..." style="background:#232323;border:1px solid #d4af37;padding:8px;border-radius:8px;color:white;"></textarea><label for="replyFile-${Y.id}" style="background:#2c2c2c;padding:6px;text-align:center;border-radius:20px;cursor:pointer;border:1px solid #d4af37;">📎 Изображение</label><input type="file" id="replyFile-${Y.id}" accept="image/*" style="display:none;"><button class="german-btn submit-reply" data-id="${Y.id}" style="margin-top:6px;">Отправить ответ</button><button class="cancel-reply" data-id="${Y.id}" style="background:#333;border:none;color:#ccc;padding:5px;border-radius:20px;">Отмена</button></div></div></div>`;}W.innerHTML=X;_1();_2();_3();R();}
-function _0(_4,_5){if(!_4.length)return'<div style="color:#777; font-size:0.7rem; padding:5px;">💬 Нет ответов</div>';let _6='';for(let _7 of _4){_6+=`<div class="reply-item"><strong>${Z(_7.name||'Аноним')}</strong> <span style="color:#888; font-size:0.6rem;">${_7.timestamp}</span>${_7.fileData?`<div><img src="${_7.fileData}" style="max-width:120px; max-height:120px; border-radius:8px; margin:6px 0;"></div>`:''}<div>${Z(_7.comment).replace(/\n/g,'<br>')}</div></div>`;}return _6;}
-function _1(){document.querySelectorAll('.reply-button').forEach(_8=>{_8.removeEventListener('click',_9);_8.addEventListener('click',_9);});}
-function _9(_a){let _b=parseInt(_a.currentTarget.getAttribute('data-id'));let _c=document.getElementById(`reply-form-${_b}`);if(_c){let _d=_c.style.display==='block';_c.style.display=_d?'none':'block';if(!_d){let _e=document.getElementById(`replyName-${_b}`);if(_e)_e.value='';let _f=document.getElementById(`replyComment-${_b}`);if(_f)_f.value='';let _g=document.getElementById(`replyFile-${_b}`);if(_g)_g.value='';}}}
-function _3(){document.querySelectorAll('.cancel-reply').forEach(_h=>{_h.removeEventListener('click',_i);_h.addEventListener('click',_i);});}
-function _i(_j){let _k=parseInt(_j.currentTarget.getAttribute('data-id'));let _l=document.getElementById(`reply-form-${_k}`);if(_l)_l.style.display='none';}
-function _2(){document.querySelectorAll('.submit-reply').forEach(_m=>{_m.removeEventListener('click',_n);_m.addEventListener('click',_n);});}
-function _n(_o){let _p=parseInt(_o.currentTarget.getAttribute('data-id'));let _q=document.getElementById(`replyName-${_p}`);let _r=document.getElementById(`replyComment-${_p}`);let _s=document.getElementById(`replyFile-${_p}`);let _t=_q?_q.value.trim():'';let _u=_r?_r.value.trim():'';if(!_u){alert('Введите текст ответа');return;}if(_s&&_s.files&&_s.files[0]){let _v=_s.files[0];if(!_v.type.startsWith('image/')){alert('Можно прикреплять только изображения');return;}let _w=new FileReader();_w.onload=async function(_x){await P(async()=>{_y(_p,_t,_u,_x.target.result,_v.name,_v.type);});if(_s)_s.value='';if(_q)_q.value='';if(_r)_r.value='';let _z=document.getElementById(`reply-form-${_p}`);if(_z)_z.style.display='none';};_w.readAsDataURL(_v);}else{P(async()=>{_y(_p,_t,_u,null,null,null);});if(_q)_q.value='';if(_r)_r.value='';let _A=document.getElementById(`reply-form-${_p}`);if(_A)_A.style.display='none';}}
-function _y(_B,_C,_D,_E,_F,_G){let _H=a.find(t=>t.id===_B);if(_H){let _I={id:c++,name:_C||'Аноним',comment:_D,fileData:_E,fileName:_F,fileType:_G,timestamp:new Date().toLocaleString()};_H.replies.push(_I);E();}}
-function Z(_J){if(!_J)return '';return _J.replace(/[&<>]/g,function(_K){if(_K==='&')return '&amp;';if(_K==='<')return '&lt;';if(_K==='>')return '&gt;';return _K;});}
-async function _L(_M,_N,_O,_P,_Q,_R){let _S={id:b++,subject:_M||'',name:_N||'Аноним',comment:_O,fileData:_P,fileName:_Q,fileType:_R,timestamp:new Date().toLocaleString(),replies:[]};a.unshift(_S);E();await F();}
-let _T=document.getElementById('newThreadForm');let _U=document.getElementById('threadFile');let _V=document.getElementById('fileChosen');if(_U&&_V){_U.addEventListener('change',function(){if(this.files&&this.files[0]){_V.textContent=this.files[0].name;}else{_V.textContent='Файл не выбран';}});}if(_T){_T.addEventListener('submit',function(_W){_W.preventDefault();let _X=document.getElementById('threadSubject').value.trim();let _Y=document.getElementById('threadName').value.trim();let _Z=document.getElementById('threadComment').value.trim();if(!_Z){alert('Комментарий обязателен');return;}let _0a=_U.files[0];if(!_0a){_L(_X,_Y,_Z,null,null,null);_T.reset();if(_V)_V.textContent='Файл не выбран';return;}if(!_0a.type.startsWith('image/')){alert('Разрешены только изображения');return;}let _0b=new FileReader();_0b.onload=async function(_0c){await _L(_X,_Y,_Z,_0c.target.result,_0a.name,_0a.type);_T.reset();if(_V)_V.textContent='Файл не выбран';};_0b.readAsDataURL(_0a);});}
-w();setInterval(()=>{if(!d){w();}},30000);
+const g=decodeToken(m,1);
+
+const GIST_URL=`https://api.github.com/gists/${GIST_ID}`;
+const GIST_RAW_URL=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
+
+const CURRENT_BOARD=typeof window.CURRENT_BOARD!=='undefined'?window.CURRENT_BOARD:'b';
+
+function generateCaptcha(){
+    const num1=Math.floor(Math.random()*10)+1;
+    const num2=Math.floor(Math.random()*10)+1;
+    const operators=['+','-','*'];
+    const op=operators[Math.floor(Math.random()*3)];
+    let question,answer;
+    if(op==='+'){
+        question=`${num1} + ${num2}`;
+        answer=num1+num2;
+    }else if(op==='-'){
+        question=`${num1} - ${num2}`;
+        answer=num1-num2;
+    }else{
+        question=`${num1} * ${num2}`;
+        answer=num1*num2;
+    }
+    return {question,answer:answer.toString()};
+}
+
+let currentCaptcha=generateCaptcha();
+const captchaQuestionEl=document.getElementById('captchaQuestion');
+if(captchaQuestionEl)captchaQuestionEl.textContent=currentCaptcha.question+' = ?';
+
+function verifyCaptcha(){
+    const inputEl=document.getElementById('captchaAnswer');
+    if(!inputEl)return true;
+    const userAnswer=inputEl.value.trim();
+    const isValid=userAnswer===currentCaptcha.answer;
+    if(!isValid){
+        alert('❌ Неправильный ответ капчи!');
+        currentCaptcha=generateCaptcha();
+        if(captchaQuestionEl)captchaQuestionEl.textContent=currentCaptcha.question+' = ?';
+        if(inputEl)inputEl.value='';
+        return false;
+    }
+    currentCaptcha=generateCaptcha();
+    if(captchaQuestionEl)captchaQuestionEl.textContent=currentCaptcha.question+' = ?';
+    if(inputEl)inputEl.value='';
+    return true;
+}
+
+const mascotContainer=document.querySelector('.mascot-placeholder');
+if(mascotContainer&&!mascotContainer.querySelector('img')){
+    const img=document.createElement('img');
+    img.src='hitme.png';
+    img.style.width='48px';
+    img.style.height='48px';
+    img.style.objectFit='contain';
+    img.style.borderRadius='50%';
+    mascotContainer.appendChild(img);
+}
+
+function updateSyncStatus(text,isError){
+    const statusEl=document.getElementById('syncStatusText');
+    if(statusEl){
+        statusEl.textContent=text;
+        statusEl.className=isError?'sync-status error':'sync-status';
+    }
+}
+
+async function loadFromGist(){
+    try{
+        updateSyncStatus('📥 Загрузка...');
+        const response=await fetch(GIST_RAW_URL);
+        if(!response.ok)throw new Error(`HTTP ${response.status}`);
+        const data=await response.json();
+        if(data&&data.threads){
+            const allThreads=data.threads;
+            threadsData=allThreads.filter(t=>t.board===CURRENT_BOARD);
+            nextThreadId=data.nextThreadId||Math.max(...allThreads.map(t=>t.id),0)+1;
+            nextPostId=data.nextPostId||(Math.max(...allThreads.flatMap(t=>[t.id,...t.replies.map(r=>r.id)]),0)+1);
+            renderAllThreads();
+            updateSyncStatus('✅ Загружено');
+        }else{
+            loadDemoData();
+        }
+    }catch(error){
+        console.error(error);
+        updateSyncStatus('⚠️ Офлайн',true);
+        loadFromLocal();
+    }
+}
+
+async function saveToGist(){
+    if(isSyncing){
+        syncQueue.push(saveToGist);
+        return;
+    }
+    isSyncing=true;
+    try{
+        updateSyncStatus('💾 Сохранение...');
+        let allThreads=[];
+        const existing=await fetch(GIST_RAW_URL);
+        if(existing.ok){
+            const oldData=await existing.json();
+            if(oldData&&oldData.threads){
+                const otherBoards=oldData.threads.filter(t=>t.board!==CURRENT_BOARD);
+                allThreads=[...otherBoards,...threadsData];
+            }else{
+                allThreads=threadsData;
+            }
+        }else{
+            allThreads=threadsData;
+        }
+        const dataToSave={
+            threads:allThreads,
+            nextThreadId:nextThreadId,
+            nextPostId:nextPostId,
+            lastUpdate:new Date().toISOString()
+        };
+        const response=await fetch(GIST_URL,{
+            method:'PATCH',
+            headers:{
+                'Authorization':`token ${g}`,
+                'Content-Type':'application/json',
+                'Accept':'application/vnd.github.v3+json'
+            },
+            body:JSON.stringify({
+                files:{'9chan_data.json':{content:JSON.stringify(dataToSave,null,2)}}
+            })
+        });
+        if(!response.ok)throw new Error(`HTTP ${response.status}`);
+        updateSyncStatus('✅ Сохранено');
+        saveToLocal();
+    }catch(error){
+        console.error(error);
+        updateSyncStatus('⚠️ Ошибка',true);
+        saveToLocal();
+    }finally{
+        isSyncing=false;
+        if(syncQueue.length>0){
+            const next=syncQueue.shift();
+            next();
+        }
+    }
+}
+
+function saveToLocal(){
+    localStorage.setItem(`9chan_threads_${CURRENT_BOARD}`,JSON.stringify(threadsData));
+}
+
+function loadFromLocal(){
+    const stored=localStorage.getItem(`9chan_threads_${CURRENT_BOARD}`);
+    if(stored&&stored!=='[]'){
+        threadsData=JSON.parse(stored);
+        renderAllThreads();
+        updateSyncStatus('📱 Локально');
+    }else{
+        loadDemoData();
+    }
+}
+
+function loadDemoData(){
+    threadsData=[{
+        id:1,
+        board:CURRENT_BOARD,
+        subject:`Добро пожаловать на /${CURRENT_BOARD}/`,
+        name:'Администрация',
+        comment:`🇩🇪 Willkommen auf /${CURRENT_BOARD}/! 🇩🇪\n\nЭто доска ${CURRENT_BOARD}. Создавайте треды, прикрепляйте изображения и общайтесь!\n\nДля создания треда или ответа нужно решить простую капчу.`,
+        fileData:null,
+        fileName:null,
+        fileType:null,
+        timestamp:new Date().toLocaleString(),
+        replies:[{
+            id:1,
+            name:'Первый анон',
+            comment:'Капча работает! 🔥',
+            fileData:null,
+            timestamp:new Date().toLocaleString()
+        }]
+    }];
+    renderAllThreads();
+    saveToGist();
+}
+
+async function syncAfterAction(action){
+    await action();
+    await saveToGist();
+}
+
+function updateStats(){
+    const threadCountSpan=document.getElementById('threadCount');
+    if(threadCountSpan)threadCountSpan.innerText=threadsData.length;
+}
+
+function renderAllThreads(){
+    const container=document.getElementById('threadsContainer');
+    if(!container)return;
+    if(threadsData.length===0){
+        container.innerHTML='<div class="loading-message">📭 Тредов нет. Создайте первый тред!</div>';
+        updateStats();
+        return;
+    }
+    let html='';
+    for(let thread of threadsData){
+        html+=`<div class="thread-card" data-thread-id="${thread.id}"><div class="thread-header"><span class="thread-title">${escapeHtml(thread.subject||'Без темы')}</span><span class="thread-info">№${thread.id} ${escapeHtml(thread.name||'Аноним')} ${thread.timestamp}</span></div>${thread.fileData?`<img class="thread-image" src="${thread.fileData}" loading="lazy">`:''}<div class="thread-comment">${escapeHtml(thread.comment).replace(/\n/g,'<br>')}</div><button class="reply-button" data-id="${thread.id}">💬 Ответить</button><div class="replies-container" id="replies-${thread.id}">${renderReplies(thread.replies)}</div><div class="reply-form-placeholder" id="reply-form-${thread.id}" style="display:none; margin-top:12px;"><div class="form-row" style="flex-direction:column;"><input type="text" id="replyName-${thread.id}" placeholder="Имя" maxlength="50" style="background:#232323;border:1px solid #d4af37;padding:8px;border-radius:8px;color:white;"><textarea id="replyComment-${thread.id}" rows="2" placeholder="Текст ответа..." style="background:#232323;border:1px solid #d4af37;padding:8px;border-radius:8px;color:white;"></textarea><div class="captcha-mini"><span id="captchaMini-${thread.id}"></span><input type="text" id="captchaMiniAnswer-${thread.id}" placeholder="Ответ" style="width:80px;margin-left:10px;"></div><label for="replyFile-${thread.id}" style="background:#2c2c2c;padding:6px;text-align:center;border-radius:20px;cursor:pointer;">📎 Изображение</label><input type="file" id="replyFile-${thread.id}" accept="image/*" style="display:none;"><button class="german-btn submit-reply" data-id="${thread.id}">Отправить ответ</button><button class="cancel-reply" data-id="${thread.id}">Отмена</button></div></div></div>`;
+    }
+    container.innerHTML=html;
+    attachReplyButtons();
+    attachSubmitReplies();
+    attachCancelReply();
+    generateMiniCaptchas();
+    updateStats();
+}
+
+function renderReplies(replies){
+    if(!replies.length)return '<div style="color:#777;padding:5px;">💬 Нет ответов</div>';
+    let html='';
+    for(let rep of replies){
+        html+=`<div class="reply-item"><strong>${escapeHtml(rep.name||'Аноним')}</strong> <span style="color:#888;font-size:0.6rem;">${rep.timestamp}</span>${rep.fileData?`<div><img src="${rep.fileData}" style="max-width:120px;border-radius:8px;"></div>`:''}<div>${escapeHtml(rep.comment).replace(/\n/g,'<br>')}</div></div>`;
+    }
+    return html;
+}
+
+let miniCaptchas={};
+
+function generateMiniCaptchas(){
+    document.querySelectorAll('[id^="captchaMini-"]').forEach(el=>{
+        const num1=Math.floor(Math.random()*5)+1;
+        const num2=Math.floor(Math.random()*5)+1;
+        const op=['+','-'][Math.floor(Math.random()*2)];
+        let answer;
+        if(op==='+')answer=num1+num2;
+        else answer=num1-num2;
+        const question=`${num1} ${op} ${num2} = ?`;
+        el.textContent=question;
+        const threadId=el.id.split('-')[1];
+        miniCaptchas[threadId]=answer.toString();
+    });
+}
+
+function verifyMiniCaptcha(threadId){
+    const answerEl=document.getElementById(`captchaMiniAnswer-${threadId}`);
+    if(!answerEl)return true;
+    const userAnswer=answerEl.value.trim();
+    const isValid=userAnswer===miniCaptchas[threadId];
+    if(!isValid){
+        alert('❌ Неправильный ответ капчи!');
+        return false;
+    }
+    return true;
+}
+
+function attachReplyButtons(){
+    document.querySelectorAll('.reply-button').forEach(btn=>{
+        btn.onclick=function(e){
+            const threadId=parseInt(this.getAttribute('data-id'));
+            const formDiv=document.getElementById(`reply-form-${threadId}`);
+            if(formDiv){
+                const isVisible=formDiv.style.display==='block';
+                formDiv.style.display=isVisible?'none':'block';
+                if(!isVisible){
+                    generateMiniCaptchas();
+                }
+            }
+        };
+    });
+}
+
+function attachCancelReply(){
+    document.querySelectorAll('.cancel-reply').forEach(btn=>{
+        btn.onclick=function(e){
+            const threadId=parseInt(this.getAttribute('data-id'));
+            const formDiv=document.getElementById(`reply-form-${threadId}`);
+            if(formDiv)formDiv.style.display='none';
+        };
+    });
+}
+
+function attachSubmitReplies(){
+    document.querySelectorAll('.submit-reply').forEach(btn=>{
+        btn.onclick=async function(e){
+            const threadId=parseInt(this.getAttribute('data-id'));
+            if(!verifyMiniCaptcha(threadId))return;
+            const nameField=document.getElementById(`replyName-${threadId}`);
+            const commentField=document.getElementById(`replyComment-${threadId}`);
+            const fileField=document.getElementById(`replyFile-${threadId}`);
+            const name=nameField?nameField.value.trim():'';
+            const comment=commentField?commentField.value.trim():'';
+            if(!comment){
+                alert('Введите текст ответа');
+                return;
+            }
+            if(fileField&&fileField.files&&fileField.files[0]){
+                const file=fileField.files[0];
+                if(!file.type.startsWith('image/')){
+                    alert('Можно прикреплять только изображения');
+                    return;
+                }
+                const reader=new FileReader();
+                reader.onload=async function(ev){
+                    await syncAfterAction(async()=>{
+                        const thread=threadsData.find(t=>t.id===threadId);
+                        if(thread){
+                            thread.replies.push({
+                                id:nextPostId++,
+                                name:name||'Аноним',
+                                comment:comment,
+                                fileData:ev.target.result,
+                                timestamp:new Date().toLocaleString()
+                            });
+                            renderAllThreads();
+                        }
+                    });
+                    if(fileField)fileField.value='';
+                    if(nameField)nameField.value='';
+                    if(commentField)commentField.value='';
+                    const formDiv=document.getElementById(`reply-form-${threadId}`);
+                    if(formDiv)formDiv.style.display='none';
+                };
+                reader.readAsDataURL(file);
+            }else{
+                await syncAfterAction(async()=>{
+                    const thread=threadsData.find(t=>t.id===threadId);
+                    if(thread){
+                        thread.replies.push({
+                            id:nextPostId++,
+                            name:name||'Аноним',
+                            comment:comment,
+                            fileData:null,
+                            timestamp:new Date().toLocaleString()
+                        });
+                        renderAllThreads();
+                    }
+                });
+                if(nameField)nameField.value='';
+                if(commentField)commentField.value='';
+                const formDiv=document.getElementById(`reply-form-${threadId}`);
+                if(formDiv)formDiv.style.display='none';
+            }
+        };
+    });
+}
+
+function escapeHtml(str){
+    if(!str)return '';
+    return str.replace(/[&<>]/g,function(m){
+        if(m==='&')return '&amp;';
+        if(m==='<')return '&lt;';
+        if(m==='>')return '&gt;';
+        return m;
+    });
+}
+
+async function createNewThread(subject,name,comment,fileData,fileName,fileType){
+    const newThread={
+        id:nextThreadId++,
+        board:CURRENT_BOARD,
+        subject:subject||'',
+        name:name||'Аноним',
+        comment:comment,
+        fileData:fileData,
+        fileName:fileName,
+        fileType:fileType,
+        timestamp:new Date().toLocaleString(),
+        replies:[]
+    };
+    threadsData.unshift(newThread);
+    renderAllThreads();
+    await saveToGist();
+}
+
+const form=document.getElementById('newThreadForm');
+const fileInput=document.getElementById('threadFile');
+const fileChosenSpan=document.getElementById('fileChosen');
+
+if(fileInput&&fileChosenSpan){
+    fileInput.addEventListener('change',function(){
+        if(this.files&&this.files[0]){
+            fileChosenSpan.textContent=this.files[0].name;
+        }else{
+            fileChosenSpan.textContent='Файл не выбран';
+        }
+    });
+}
+
+if(form){
+    form.addEventListener('submit',async function(e){
+        e.preventDefault();
+        if(!verifyCaptcha())return;
+        const subject=document.getElementById('threadSubject').value.trim();
+        const name=document.getElementById('threadName').value.trim();
+        const comment=document.getElementById('threadComment').value.trim();
+        if(!comment){
+            alert('Комментарий обязателен');
+            return;
+        }
+        const file=fileInput.files[0];
+        if(!file){
+            await createNewThread(subject,name,comment,null,null,null);
+            form.reset();
+            if(fileChosenSpan)fileChosenSpan.textContent='Файл не выбран';
+            return;
+        }
+        if(!file.type.startsWith('image/')){
+            alert('Разрешены только изображения');
+            return;
+        }
+        const reader=new FileReader();
+        reader.onload=async function(ev){
+            await createNewThread(subject,name,comment,ev.target.result,file.name,file.type);
+            form.reset();
+            if(fileChosenSpan)fileChosenSpan.textContent='Файл не выбран';
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+loadFromGist();
+setInterval(()=>{
+    if(!isSyncing)loadFromGist();
+},30000);
 })();
