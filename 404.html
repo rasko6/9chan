@@ -2,20 +2,127 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404</title>
-    <link rel="stylesheet" href="styles/base.css">
-    <link rel="stylesheet" href="styles/base-phone.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>404 - Страница не найдена</title>
+    <link rel="icon" href="icon.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #0f0f0f;
+            border: 1px solid #d4af37;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+        }
+
+        .image-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .image-wrapper img {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(212,175,55,0.3));
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        .status {
+            font-size: 6rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #d4af37, #ffdd88);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(212,175,55,0.3);
+            margin-bottom: 10px;
+        }
+
+        .message {
+            font-size: 1.2rem;
+            color: #aaa;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .return-button {
+            display: inline-block;
+            background: #2c2c2c;
+            border: 1px solid #d4af37;
+            color: #ffeaac;
+            padding: 12px 28px;
+            font-weight: bold;
+            border-radius: 40px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .return-button:hover {
+            background: #d4af37;
+            color: #0f0f0f;
+            box-shadow: 0 0 15px rgba(212,175,55,0.5);
+            transform: translateY(-2px);
+        }
+
+        .german-stripe {
+            margin-top: 25px;
+            display: flex;
+            height: 4px;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .stripe-black { flex: 1; background: #000; }
+        .stripe-red { flex: 1; background: #dd0000; }
+        .stripe-gold { flex: 1; background: #d4af37; }
+
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; }
+            .status { font-size: 4rem; }
+            .message { font-size: 1rem; }
+            .return-button { padding: 10px 20px; font-size: 0.9rem; }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <div class="image-wrapper">
-            <img src="hitme.png" alt="404">
+            <img src="icon.png" alt="404" onerror="this.src='hitme.png'">
         </div>
         <div class="status">404</div>
-        <div class="message">страница не найдена</div>
-        <br>
-        <a href="https://rasko6.github.io/9chan/" class="return-button">← вернуться на сайт</a>
+        <div class="message">SEITE NICHT GEFUNDEN</div>
+        <div class="message" style="font-size:0.8rem; margin-top:-15px; margin-bottom:25px;">страница не найдена</div>
+        <a href="https://rasko6.github.io/9chan/" class="return-button">← ZURÜCK ZUR STARTSEITE</a>
+        <div class="german-stripe">
+            <div class="stripe-black"></div>
+            <div class="stripe-red"></div>
+            <div class="stripe-gold"></div>
+        </div>
     </div>
 </body>
 </html>
