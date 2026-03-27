@@ -4,18 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>/b/ - 9chan</title>
+    <link rel="icon" href="../icon.png" type="image/png">
     <link rel="stylesheet" href="../styles/base.css">
     <link rel="stylesheet" href="../styles/base-phone.css">
-    <link rel="icon" href="../hitme.png" type="image/png">
 </head>
 <body>
     <div class="container">
         <header class="board-header">
             <div class="logo-area">
-                <img src="../haiiiiuwu.png" alt="hitme" class="hitme-icon">
+                <img src="../icon.png" alt="9chan" class="hitme-icon" onerror="this.src='../hitme.png'">
                 <h1>/b/ - Разное</h1>
                 <div class="mascot-placeholder">
-                    <img src="../hitme.png" alt="mascot" style="width: 48px; height: 48px; object-fit: contain; border-radius: 50%;">
+                    <img src="../icon.png" alt="mascot" style="width:48px;height:48px;object-fit:contain;border-radius:50%;" onerror="this.src='../hitme.png'">
                 </div>
             </div>
             <div class="header-links">
@@ -25,7 +25,7 @@
                 <a href="#">Помощь</a>
             </div>
             <div class="sync-status-bar">
-                <span id="syncStatusText" class="sync-status">🔄 Синхронизация...</span>
+                <span id="syncStatusText" class="sync-status">🔄 Загрузка...</span>
             </div>
             <div class="banner-deutsch">
                 <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
@@ -39,10 +39,8 @@
                 <li><a href="g.html">/g/</a></li>
                 <li><a href="a.html">/a/</a></li>
                 <li><a href="pol.html">/pol/</a></li>
-                <li><a href="mu.html">/mu/</a></li>
                 <li><a href="d.html">/d/</a></li>
                 <li><a href="k.html">/k/</a></li>
-                <li><a href="int.html">/int/</a></li>
             </ul>
         </nav>
 
@@ -70,21 +68,23 @@
             </form>
         </div>
 
+        <div class="board-stats">
+            <span>🔥 Тредов: <span id="threadCount">0</span></span>
+        </div>
+
         <div class="threads-container" id="threadsContainer">
-            <div class="loading-message">Загрузка тредов...</div>
+            <div class="loading-message">Загрузка...</div>
         </div>
 
         <footer class="board-footer">
             <div class="footer-content">
                 <span>© 9chan — свобода слова, чёрный юмор, немецкое качество</span>
-                <img src="../hitme.png" alt="footer-icon" class="footer-icon">
+                <img src="../icon.png" alt="footer-icon" class="footer-icon" onerror="this.src='../hitme.png'">
             </div>
         </footer>
     </div>
 
     <script src="../scripts/script.js"></script>
-    <script>
-        const CURRENT_BOARD = 'b';
-    </script>
+    <script>const CURRENT_BOARD = 'b';</script>
 </body>
 </html>
