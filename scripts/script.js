@@ -23,19 +23,6 @@
     const GIST_URL = `https://api.github.com/gists/${GIST_ID}`;
     const GIST_RAW_URL = `https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
 
-        const mascotContainer = document.getElementById('mascotDynamic');
-    if (mascotContainer) {
-        const img = document.createElement('img');
-        img.src = 'buhhh.png';
-        img.alt = 'mascot';
-        img.style.width = '48px';
-        img.style.height = '48px';
-        img.style.objectFit = 'contain';
-        img.style.borderRadius = '50%';
-        mascotContainer.innerHTML = '';
-        mascotContainer.appendChild(img);
-    }
-
     function updateSyncStatus(text, isError = false) {
         const statusEl = document.getElementById('syncStatusText');
         if (statusEl) {
