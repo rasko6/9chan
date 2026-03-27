@@ -3,69 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>9chan</title>
+    <title>9chan - Доски</title>
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/base-phone.css">
     <link rel="icon" href="hitme.png" type="image/png">
+    <style>
+        .boards-catalog {
+            padding: 30px 20px;
+            background: #0a0a0a;
+            margin: 20px;
+            border-radius: 20px;
+            border: 1px solid #d4af37;
+        }
+        .boards-catalog h2 {
+            color: #d4af37;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+        }
+        .boards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .board-card {
+            background: #1a1a1a;
+            border: 1px solid #3a3a3a;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: block;
+        }
+        .board-card:hover {
+            border-color: #d4af37;
+            transform: translateY(-3px);
+            background: #252525;
+        }
+        .board-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #d4af37;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .board-desc {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        .board-stats-small {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header class="board-header">
             <div class="logo-area">
-                <img src="haiiiiUwu.png" alt="hitme" class="hitme-icon">
+                <img src="haiiiiuwu.png" alt="hitme" class="hitme-icon">
                 <h1>9chan</h1>
                 <div class="mascot-placeholder">
                     <img src="hitme.png" alt="check ur internet speed" style="width: 48px; height: 48px; object-fit: contain; border-radius: 50%;">
                 </div>
             </div>
             <div class="header-links">
-                <a href="#">Главная</a>
+                <a href="index.html">Главная</a>
                 <a href="#">Каталог</a>
                 <a href="#">Правила</a>
                 <a href="#">Помощь</a>
-            </div>
-            <div class="sync-status-bar">
-                <span id="syncStatusText" class="sync-status">🔄 Синхронизация...</span>
             </div>
             <div class="banner-deutsch">
                 <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
             </div>
         </header>
 
-        <nav class="board-nav">
-            <span class="board-label">Доски:</span>
-            <ul class="boards-list">
-                <li><a href="#">/b/</a></li>
-                <li><a href="#">/g/</a></li>
-                <li><a href="#">/a/</a></li>
-                <li><a href="#">/pol/</a></li>
-                <li><a href="#">/mu/</a></li>
-                <li><a href="#">/d/</a></li>
-                <li><a href="#">/k/</a></li>
-                <li><a href="#">/int/</a></li>
-            </ul>
-        </nav>
-
-        <div class="thread-form-container">
-            <form id="newThreadForm" enctype="multipart/form-data">
-                <div class="form-row">
-                    <input type="text" id="threadSubject" placeholder="Тема (необязательно)" maxlength="100">
-                    <input type="text" id="threadName" placeholder="Имя (опционально)" maxlength="50">
-                </div>
-                <div class="form-row">
-                    <textarea id="threadComment" rows="3" placeholder="Комментарий..." required></textarea>
-                </div>
-                <div class="form-row file-row">
-                    <label for="threadFile" class="file-label">📁 Прикрепить файл</label>
-                    <input type="file" id="threadFile" accept="image/png,image/jpeg,image/gif,image/webp">
-                    <span class="file-name" id="fileChosen">Файл не выбран</span>
-                    <button type="submit" id="submitThread" class="german-btn">Создать тред</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="threads-container" id="threadsContainer">
-            <div class="loading-message">Загрузка тредов...</div>
+        <div class="boards-catalog">
+            <h2>📌 Выберите доску</h2>
+            <div class="boards-grid" id="boardsGrid"></div>
         </div>
 
         <footer class="board-footer">
@@ -76,6 +93,26 @@
         </footer>
     </div>
 
-    <script src="scripts/script.js"></script>
+    <script>
+        const boards = [
+            { name: 'b', desc: 'Разное', color: '#d4af37' },
+            { name: 'g', desc: 'Технологии & программирование', color: '#4caf50' },
+            { name: 'a', desc: 'Аниме & манга', color: '#ff69b4' },
+            { name: 'pol', desc: 'Политика', color: '#ff4444' },
+            { name: 'd', desc: 'Изображения', color: '#2196f3' },
+            { name: 'k', desc: 'Оружие', color: '#795548' }
+        ];
+
+        const grid = document.getElementById('boardsGrid');
+        if (grid) {
+            grid.innerHTML = boards.map(b => `
+                <a href="board/${b.name}.html" class="board-card">
+                    <span class="board-name">/${b.name}/</span>
+                    <span class="board-desc">${b.desc}</span>
+                    <span class="board-stats-small">📁 Перейти к доске</span>
+                </a>
+            `).join('');
+        }
+    </script>
 </body>
 </html>
