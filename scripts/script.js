@@ -23,7 +23,7 @@
     const GIST_URL = `https://api.github.com/gists/${GIST_ID}`;
     const GIST_RAW_URL = `https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
 
-    const mascotContainer = document.getElementById('mascotDynamic');
+        const mascotContainer = document.getElementById('mascotDynamic');
     if (mascotContainer) {
         const img = document.createElement('img');
         img.src = 'buhhh.png';
