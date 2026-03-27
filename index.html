@@ -22,6 +22,9 @@
                 <a href="#">Правила</a>
                 <a href="#">Помощь</a>
             </div>
+            <div class="sync-status-bar">
+                <span id="syncStatusText" class="sync-status">🔄 Синхронизация...</span>
+            </div>
             <div class="banner-deutsch">
                 <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
             </div>
@@ -51,7 +54,7 @@
                     <textarea id="threadComment" rows="3" placeholder="Комментарий..." required></textarea>
                 </div>
                 <div class="form-row file-row">
-                    <label for="threadFile" class="file-label">Прикрепить файл</label>
+                    <label for="threadFile" class="file-label">📁 Прикрепить файл</label>
                     <input type="file" id="threadFile" accept="image/png,image/jpeg,image/gif,image/webp">
                     <span class="file-name" id="fileChosen">Файл не выбран</span>
                     <button type="submit" id="submitThread" class="german-btn">Создать тред</button>
