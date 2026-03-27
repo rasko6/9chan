@@ -1,3 +1,76 @@
-<h1>This imageboard in dev...</h1>
-please, wait...
-<img src="hitme.png" alt="Was wollen wir trinken">
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>9chan</title>
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/base-phone.css">
+    <link rel="icon" href="hitme.png" type="image/png">
+</head>
+<body>
+    <div class="container">
+        <header class="board-header">
+            <div class="logo-area">
+                <img src="hitme.png" alt="hitme" class="hitme-icon">
+                <h1>9chan</h1>
+                <div class="mascot-placeholder" id="mascotDynamic"></div>
+            </div>
+            <div class="header-links">
+                <a href="#">Главная</a>
+                <a href="#">Каталог</a>
+                <a href="#">Правила</a>
+                <a href="#">Помощь</a>
+            </div>
+            <div class="banner-deutsch">
+                <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
+            </div>
+        </header>
+
+        <nav class="board-nav">
+            <span class="board-label">Доски:</span>
+            <ul class="boards-list">
+                <li><a href="#">/b/</a></li>
+                <li><a href="#">/g/</a></li>
+                <li><a href="#">/a/</a></li>
+                <li><a href="#">/pol/</a></li>
+                <li><a href="#">/mu/</a></li>
+                <li><a href="#">/d/</a></li>
+                <li><a href="#">/k/</a></li>
+                <li><a href="#">/int/</a></li>
+            </ul>
+        </nav>
+
+        <div class="thread-form-container">
+            <form id="newThreadForm" enctype="multipart/form-data">
+                <div class="form-row">
+                    <input type="text" id="threadSubject" placeholder="Тема (необязательно)" maxlength="100">
+                    <input type="text" id="threadName" placeholder="Имя (опционально)" maxlength="50">
+                </div>
+                <div class="form-row">
+                    <textarea id="threadComment" rows="3" placeholder="Комментарий..." required></textarea>
+                </div>
+                <div class="form-row file-row">
+                    <label for="threadFile" class="file-label">Прикрепить файл</label>
+                    <input type="file" id="threadFile" accept="image/png,image/jpeg,image/gif,image/webp">
+                    <span class="file-name" id="fileChosen">Файл не выбран</span>
+                    <button type="submit" id="submitThread" class="german-btn">Создать тред</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="threads-container" id="threadsContainer">
+            <div class="loading-message">Загрузка тредов...</div>
+        </div>
+
+        <footer class="board-footer">
+            <div class="footer-content">
+                <span>© 9chan — свобода слова, чёрный юмор, немецкое качество</span>
+                <img src="hitme.png" alt="footer-icon" class="footer-icon">
+            </div>
+        </footer>
+    </div>
+
+    <script src="scripts/script.js"></script>
+</body>
+</html>
