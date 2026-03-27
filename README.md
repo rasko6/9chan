@@ -60,4 +60,3 @@
 ## Ссылка
 
 [https://rasko6.github.io/9chan/](https://rasko6.github.io/9chan/)
-```
