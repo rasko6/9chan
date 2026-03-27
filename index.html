@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>9chan - Доски</title>
+    <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/base-phone.css">
-    <link rel="icon" href="hitme.png" type="image/png">
     <style>
         .boards-catalog {
             padding: 30px 20px;
@@ -23,7 +23,7 @@
         }
         .boards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 20px;
         }
         .board-card {
@@ -42,7 +42,7 @@
             background: #252525;
         }
         .board-name {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: bold;
             color: #d4af37;
             display: block;
@@ -52,21 +52,16 @@
             font-size: 0.8rem;
             color: #aaa;
         }
-        .board-stats-small {
-            font-size: 0.7rem;
-            color: #666;
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="board-header">
             <div class="logo-area">
-                <img src="haiiiiuwu.png" alt="hitme" class="hitme-icon">
+                <img src="icon.png" alt="9chan" class="hitme-icon" onerror="this.src='hitme.png'">
                 <h1>9chan</h1>
                 <div class="mascot-placeholder">
-                    <img src="hitme.png" alt="check ur internet speed" style="width: 48px; height: 48px; object-fit: contain; border-radius: 50%;">
+                    <img src="icon.png" alt="mascot" style="width:48px;height:48px;object-fit:contain;border-radius:50%;" onerror="this.src='hitme.png'">
                 </div>
             </div>
             <div class="header-links">
@@ -88,7 +83,7 @@
         <footer class="board-footer">
             <div class="footer-content">
                 <span>© 9chan — свобода слова, чёрный юмор, немецкое качество</span>
-                <img src="hitme.png" alt="footer-icon" class="footer-icon">
+                <img src="icon.png" alt="footer-icon" class="footer-icon" onerror="this.src='hitme.png'">
             </div>
         </footer>
     </div>
@@ -109,7 +104,6 @@
                 <a href="board/${b.name}.html" class="board-card">
                     <span class="board-name">/${b.name}/</span>
                     <span class="board-desc">${b.desc}</span>
-                    <span class="board-stats-small">📁 Перейти к доске</span>
                 </a>
             `).join('');
         }
