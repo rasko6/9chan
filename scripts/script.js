@@ -22,7 +22,9 @@ const GITHUB_TOKEN=decodeToken(ENCRYPTED_TOKEN,10);
 const GIST_URL=`https://api.github.com/gists/${GIST_ID}`;
 const GIST_RAW_URL=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
 const CURRENT_BOARD=typeof window.CURRENT_BOARD!=='undefined'?window.CURRENT_BOARD:'b';
-
+    
+document.querySelectorAll('.mascot-placeholder').forEach(el => el.remove());
+    
 function generateCaptcha(){
     const n1=Math.floor(Math.random()*10)+1;
     const n2=Math.floor(Math.random()*10)+1;
