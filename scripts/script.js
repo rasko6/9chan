@@ -36,33 +36,30 @@ function verifyCaptcha(){
 
 document.querySelectorAll('.mascot-placeholder').forEach(e=>e.remove());
 
-function updateSyncStatus(text,isError){
-    const el=document.getElementById('syncStatusText');
-    if(el){
-        el.textContent=text;
-        el.style.color=isError?'#f44336':'#d4af37';
+function formatDate(dateValue){
+    if(!dateValue)return new Date().toLocaleString();
+    if(typeof dateValue==='string'){
+        if(dateValue.startsWith('Date(')){
+            const match=dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+            if(match){
+                return new Date(match[1],match[2],match[3],match[4],match[5],match[6]).toLocaleString();
+            }
+        }
+        return dateValue;
     }
+    return new Date().toLocaleString();
 }
 
 async function loadFromSheets(){
-    updateSyncStatus('📥 Загрузка...');
     try{
         const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
-        console.log('Загрузка:',url);
         const res=await fetch(url);
-        if(!res.ok)throw new Error(`HTTP ${res.status}`);
         const text=await res.text();
-        console.log('Ответ:',text.substring(0,200));
-        
-        const jsonStart=text.indexOf('{');
-        const jsonEnd=text.lastIndexOf('}');
-        const jsonText=text.substring(jsonStart,jsonEnd+1);
-        const json=JSON.parse(jsonText);
-        
+        const json=JSON.parse(text);
         const rows=json.table.rows;
-        threads=[];
         
-        for(let i=1;i<rows.length;i++){
+        threads=[];
+        for(let i=0;i<rows.length;i++){
             const row=rows[i].c;
             if(row && row[0] && row[0].v){
                 threads.push({
@@ -72,7 +69,7 @@ async function loadFromSheets(){
                     name:row[3]?.v||'Аноним',
                     comment:row[4]?.v||'',
                     fileData:row[5]?.v||null,
-                    timestamp:row[6]?.v||new Date().toLocaleString(),
+                    timestamp:formatDate(row[6]?.v),
                     replies:row[7]?.v?JSON.parse(row[7].v):[]
                 });
             }
@@ -81,15 +78,29 @@ async function loadFromSheets(){
         render();
         updateSyncStatus('✅ Загружено');
     }catch(e){
-        console.error('Ошибка:',e);
-        updateSyncStatus('⚠️ Ошибка загрузки',true);
-        loadDemoData();
+        console.error(e);
+        updateSyncStatus('⚠️ Ошибка',true);
+        loadLocal();
     }
 }
 
-function loadDemoData(){
-    threads=[{id:1,board:BOARD,subject:`Добро пожаловать на /${BOARD}/`,name:'Admin',comment:'Привет! Это демо-режим. Google Sheets не отвечает.',timestamp:new Date().toLocaleString(),replies:[]}];
-    render();
+function loadLocal(){
+    const saved=localStorage.getItem(`9chan_${BOARD}`);
+    if(saved){
+        threads=JSON.parse(saved);
+        render();
+    }else{
+        threads=[{id:1,board:BOARD,subject:`Добро пожаловать на /${BOARD}/`,name:'Admin',comment:'Привет! Данные из Google Sheets.',timestamp:new Date().toLocaleString(),replies:[]}];
+        render();
+    }
+}
+
+function updateSyncStatus(text,isError){
+    const el=document.getElementById('syncStatusText');
+    if(el){
+        el.textContent=text;
+        el.style.color=isError?'#f44336':'#d4af37';
+    }
 }
 
 function render(){
@@ -135,7 +146,7 @@ function attachEvents(){
     document.querySelectorAll('.submit-reply').forEach(btn=>{
         btn.onclick=()=>{
             if(!verifyCaptcha())return;
-            alert('⚠️ Сохранение временно отключено. Редактируйте Google Sheets вручную.');
+            alert('⚠️ Сохранение ответов временно отключено. Редактируйте Google Sheets вручную.');
         };
     });
 }
