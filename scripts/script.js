@@ -8,7 +8,6 @@ let cacheData=null;
 let allThreadsCache=[];
 
 const GIST_ID='769dce8a044d2d8dc2b21a2f60719c58';
-const DECODE_TIMES=1;
 const CACHE_TIME=5000;
 
 function decodeToken(encoded,times){
@@ -18,7 +17,8 @@ function decodeToken(encoded,times){
 }
 
 const ENCRYPTED_TOKEN='Vm0wd2QyVkhVWGhVV0d4V1YwZG9WbFl3WkRSV1ZsbDNXa1JTVjAxV2JETlhhMk0xWVZVeFYxZHViRmROYWxaeVZqQmFTMk15VGtsaVJtUk9ZbXhHTTFadGNFdFRNVTVJVm10a1dHSkhVbFJVVkVwdlZWWmFjVkZ0UmxSTmF6RTBWMnRvVjJGV1NuUlZia0pYWVRGYVIxcFZXbXRXTVhCSlkwZDRVMDFFVmpaV01uUnZVekpHUjFOdVVsWmlSMmhXVm10V2QyUnNVblJsUjBaclVqRmFTRll5TVRSVk1rVjVaSHBHVjFaRmNETlhWbHBYWkVaT2NtRkhhRk5pVjJob1YxWlNSMlF3TUhoalJtUllZbGhTY1ZsclpGTk5SbFowWlVVNVZXSlZjRWRaTUZwelYwWmFSbE5zYUZwbGExcDZWbXBHVDJNeFduTmFSMmhzWWxob1dsWXhaREJaVmsxNFdrVmtXR0pyY0ZsWmJGWmhZMVpzY2xwRVRrNWlSbG93V2xWYVQxWlhTbFpYVkVwWFlsaG9lbFpxUVhoa1ZsWjFWMnhrVjFKV2NGVlhXSEJIWVRKT2MxcElUbWhTTW5oVVZGUktiMWRzV1hoWGJFNVRUVmQ0V1ZWdGRHdGhWazVHVjJ4U1dtRXhWWGhXTUZwVFZqRndSMVJyTlZOaVJWa3dWakowYjFReVJrZFRXR2hZWW0xNFdGUlhOVU5UUmxweFVtMUdWMDFyTlVoV1J6RkhWVEZLVjJORlZsZGlSMUV3VlZSR1lWWnJNVlpXYXpWVFVrVkZOUT09';
-const GITHUB_TOKEN=decodeToken(ENCRYPTED_TOKEN,1);
+const GITHUB_TOKEN=decodeToken(ENCRYPTED_TOKEN,10);
+
 const GIST_URL=`https://api.github.com/gists/${GIST_ID}`;
 const GIST_RAW_URL=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
 const CURRENT_BOARD=typeof window.CURRENT_BOARD!=='undefined'?window.CURRENT_BOARD:'b';
