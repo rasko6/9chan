@@ -1,9 +1,9 @@
 (function(){
 let threads=[],nextId=1,nextReply=1,syncing=false;
 
-const GIST_ID='769dce8a044d2d8dc2b21a2f60719c58';
+const GIST_ID='90d37b1181768b21e985b423dd4578a9';
 const URL=`https://api.github.com/gists/${GIST_ID}`;
-const RAW=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_data.json`;
+const RAW=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_db.json`;
 const BOARD=window.CURRENT_BOARD||'b';
 
 function decodeToken(enc){return atob(enc);}
@@ -46,7 +46,7 @@ async function save(){
         await fetch(URL,{
             method:'PATCH',
             headers:{'Authorization':`token ${TOKEN}`,'Content-Type':'application/json'},
-            body:JSON.stringify({files:{'9chan_data.json':{content:JSON.stringify({threads:all,nextThreadId:nextId,nextPostId:nextReply,lastUpdate:new Date().toISOString()})}}})
+            body:JSON.stringify({files:{'9chan_db.json':{content:JSON.stringify({threads:all,nextThreadId:nextId,nextPostId:nextReply,lastUpdate:new Date().toISOString()})}}})
         });
         localStorage.setItem(`9chan_${BOARD}`,JSON.stringify(threads));
     }catch(e){console.log(e);}
