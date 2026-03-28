@@ -146,7 +146,7 @@ function attachEvents(){
     document.querySelectorAll('.submit-reply').forEach(btn=>{
         btn.onclick=()=>{
             if(!verifyCaptcha())return;
-            alert('⚠️ Сохранение ответов временно отключено. Редактируйте Google Sheets вручную.');
+            alert('⚠️ Сохранение ответов временно отключено.');
         };
     });
 }
@@ -166,7 +166,7 @@ if(form){
     form.onsubmit=(e)=>{
         e.preventDefault();
         if(!verifyCaptcha())return;
-        alert('⚠️ Создание тредов временно отключено. Редактируйте Google Sheets вручную.\n\nСсылка: https://docs.google.com/spreadsheets/d/'+SHEET_ID);
+        alert('⚠️ Создание тредов временно отключено.);
     };
 }
 
