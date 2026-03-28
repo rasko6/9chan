@@ -7,7 +7,7 @@ const RAW=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/
 const BOARD=window.CURRENT_BOARD||'b';
 
 function decodeToken(enc){return atob(enc);}
-const ENC_TOKEN='V2pKb2QxZ3dhRkJUVlVVMFkxUlNjbFpyV25kbGExcFlZek5rUTJOcVFsbE9ia1l3V2pGS2IyTlVSbmRsYWtKWlkzcE9jbEZSUFQwPQ==';
+const ENC_TOKEN='Z2hwX0VxTEdnQ2pLbEFTa2N4bmFEN083bjRSTXF0SWdRZTEwYXlBSw==';
 const TOKEN=decodeToken(ENC_TOKEN);
 
 document.querySelectorAll('.mascot-placeholder').forEach(e=>e.remove());
