@@ -36,15 +36,32 @@ function verifyCaptcha(){
 
 document.querySelectorAll('.mascot-placeholder').forEach(e=>e.remove());
 
+function updateSyncStatus(text,isError){
+    const el=document.getElementById('syncStatusText');
+    if(el){
+        el.textContent=text;
+        el.style.color=isError?'#f44336':'#d4af37';
+    }
+}
+
 async function loadFromSheets(){
+    updateSyncStatus('📥 Загрузка...');
     try{
         const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
+        console.log('Загрузка:',url);
         const res=await fetch(url);
+        if(!res.ok)throw new Error(`HTTP ${res.status}`);
         const text=await res.text();
-        const json=JSON.parse(text.substring(47,text.length-2));
-        const rows=json.table.rows;
+        console.log('Ответ:',text.substring(0,200));
         
+        const jsonStart=text.indexOf('{');
+        const jsonEnd=text.lastIndexOf('}');
+        const jsonText=text.substring(jsonStart,jsonEnd+1);
+        const json=JSON.parse(jsonText);
+        
+        const rows=json.table.rows;
         threads=[];
+        
         for(let i=1;i<rows.length;i++){
             const row=rows[i].c;
             if(row && row[0] && row[0].v){
@@ -62,10 +79,17 @@ async function loadFromSheets(){
         }
         threads=threads.filter(t=>t.board===BOARD);
         render();
+        updateSyncStatus('✅ Загружено');
     }catch(e){
-        console.log('Ошибка:',e);
-        document.getElementById('threadsContainer').innerHTML='<div class="loading-message">Ошибка загрузки</div>';
+        console.error('Ошибка:',e);
+        updateSyncStatus('⚠️ Ошибка загрузки',true);
+        loadDemoData();
     }
+}
+
+function loadDemoData(){
+    threads=[{id:1,board:BOARD,subject:`Добро пожаловать на /${BOARD}/`,name:'Admin',comment:'Привет! Это демо-режим. Google Sheets не отвечает.',timestamp:new Date().toLocaleString(),replies:[]}];
+    render();
 }
 
 function render(){
@@ -110,7 +134,8 @@ function attachEvents(){
     });
     document.querySelectorAll('.submit-reply').forEach(btn=>{
         btn.onclick=()=>{
-            alert('⚠️ Создание ответов временно отключено. Редактируйте Google Sheets вручную.');
+            if(!verifyCaptcha())return;
+            alert('⚠️ Сохранение временно отключено. Редактируйте Google Sheets вручную.');
         };
     });
 }
@@ -129,6 +154,7 @@ let form=document.getElementById('newThreadForm');
 if(form){
     form.onsubmit=(e)=>{
         e.preventDefault();
+        if(!verifyCaptcha())return;
         alert('⚠️ Создание тредов временно отключено. Редактируйте Google Sheets вручную.\n\nСсылка: https://docs.google.com/spreadsheets/d/'+SHEET_ID);
     };
 }
