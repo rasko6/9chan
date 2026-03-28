@@ -1,140 +1,138 @@
 (function(){
-let threads=[],nextId=1,nextReply=1,syncing=false;
-
-const GIST_ID='90d37b1181768b21e985b423dd4578a9';
-const URL=`https://api.github.com/gists/${GIST_ID}`;
-const RAW=`https://gist.githubusercontent.com/AlgorithmIntensity/${GIST_ID}/raw/9chan_db.json`;
+let threads=[];
 const BOARD=window.CURRENT_BOARD||'b';
+const SHEET_ID='1JOR6YunxzIlrGMFgl_iifstE5QBsd9hZ2Ih8x6AfnZ8';
 
-function decodeToken(enc){return atob(enc);}
-const ENC_TOKEN='Z2hwX0VxTEdnQ2pLbEFTa2N4bmFEN083bjRSTXF0SWdRZTEwYXlBSw==';
-const TOKEN=decodeToken(ENC_TOKEN);
+function generateCaptcha(){
+    const n1=Math.floor(Math.random()*10)+1;
+    const n2=Math.floor(Math.random()*10)+1;
+    const op=['+','-','*'][Math.floor(Math.random()*3)];
+    let q,a;
+    if(op==='+'){q=`${n1} + ${n2}`;a=n1+n2;}
+    else if(op==='-'){q=`${n1} - ${n2}`;a=n1-n2;}
+    else{q=`${n1} * ${n2}`;a=n1*n2;}
+    return {question:q,answer:a.toString()};
+}
+
+let currentCaptcha=generateCaptcha();
+const captchaQ=document.getElementById('captchaQuestion');
+if(captchaQ)captchaQ.textContent=currentCaptcha.question+' = ?';
+
+function verifyCaptcha(){
+    const inputEl=document.getElementById('captchaAnswer');
+    if(!inputEl)return true;
+    if(inputEl.value.trim()!==currentCaptcha.answer){
+        alert('❌ Неправильный ответ!');
+        currentCaptcha=generateCaptcha();
+        if(captchaQ)captchaQ.textContent=currentCaptcha.question+' = ?';
+        inputEl.value='';
+        return false;
+    }
+    currentCaptcha=generateCaptcha();
+    if(captchaQ)captchaQ.textContent=currentCaptcha.question+' = ?';
+    inputEl.value='';
+    return true;
+}
 
 document.querySelectorAll('.mascot-placeholder').forEach(e=>e.remove());
 
-async function load(){
+async function loadFromSheets(){
     try{
-        let r=await fetch(RAW);
-        if(!r.ok)throw new Error();
-        let d=await r.json();
-        let all=d.threads||[];
-        threads=all.filter(t=>t.board===BOARD);
-        nextId=d.nextThreadId||Math.max(...all.map(t=>t.id),0)+1;
-        nextReply=d.nextPostId||Math.max(...all.flatMap(t=>[t.id,...(t.replies||[]).map(r=>r.id)]),0)+1;
+        const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
+        const res=await fetch(url);
+        const text=await res.text();
+        const json=JSON.parse(text.substring(47,text.length-2));
+        const rows=json.table.rows;
+        
+        threads=[];
+        for(let i=1;i<rows.length;i++){
+            const row=rows[i].c;
+            if(row && row[0] && row[0].v){
+                threads.push({
+                    id:parseInt(row[0].v),
+                    board:row[1]?.v||'b',
+                    subject:row[2]?.v||'',
+                    name:row[3]?.v||'Аноним',
+                    comment:row[4]?.v||'',
+                    fileData:row[5]?.v||null,
+                    timestamp:row[6]?.v||new Date().toLocaleString(),
+                    replies:row[7]?.v?JSON.parse(row[7].v):[]
+                });
+            }
+        }
+        threads=threads.filter(t=>t.board===BOARD);
         render();
     }catch(e){
-        let s=localStorage.getItem(`9chan_${BOARD}`);
-        if(s)threads=JSON.parse(s);
-        else threads=[{id:1,board:BOARD,subject:`Добро пожаловать на /${BOARD}/`,name:'Admin',comment:'Привет!',timestamp:new Date().toLocaleString(),replies:[]}];
-        render();
+        console.log('Ошибка:',e);
+        document.getElementById('threadsContainer').innerHTML='<div class="loading-message">Ошибка загрузки</div>';
     }
-}
-
-async function save(){
-    if(syncing)return;
-    syncing=true;
-    try{
-        let other=[];
-        try{
-            let r=await fetch(RAW);
-            if(r.ok){
-                let d=await r.json();
-                if(d.threads)other=d.threads.filter(t=>t.board!==BOARD);
-            }
-        }catch(e){}
-        let all=[...other,...threads];
-        await fetch(URL,{
-            method:'PATCH',
-            headers:{'Authorization':`token ${TOKEN}`,'Content-Type':'application/json'},
-            body:JSON.stringify({files:{'9chan_db.json':{content:JSON.stringify({threads:all,nextThreadId:nextId,nextPostId:nextReply,lastUpdate:new Date().toISOString()})}}})
-        });
-        localStorage.setItem(`9chan_${BOARD}`,JSON.stringify(threads));
-    }catch(e){console.log(e);}
-    finally{syncing=false;}
 }
 
 function render(){
-    let c=document.getElementById('threadsContainer');
+    const c=document.getElementById('threadsContainer');
     if(!c)return;
-    if(!threads.length){c.innerHTML='<div class="loading-message">Нет тредов</div>';return;}
-    let h='';
-    for(let t of threads){
-        h+=`<div class="thread-card"><div class="thread-header"><span class="thread-title">${escape(t.subject||'Без темы')}</span><span class="thread-info">№${t.id} ${escape(t.name||'Аноним')} ${t.timestamp}</span></div>${t.fileData?`<img class="thread-image" src="${t.fileData}">`:''}<div class="thread-comment">${escape(t.comment).replace(/\n/g,'<br>')}</div><button class="reply-btn" data-id="${t.id}">Ответить</button><div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div><div class="reply-form" id="reply-form-${t.id}" style="display:none"><input type="text" id="replyName-${t.id}" placeholder="Имя"><textarea id="replyComment-${t.id}" rows="2" placeholder="Текст"></textarea><button class="submit-reply" data-id="${t.id}">Отправить</button><button class="cancel-reply" data-id="${t.id}">Отмена</button></div></div>`;
+    if(!threads.length){
+        c.innerHTML='<div class="loading-message">Нет тредов</div>';
+        updateStats();
+        return;
     }
-    c.innerHTML=h;
+    let html='';
+    for(let t of threads){
+        html+=`<div class="thread-card"><div class="thread-header"><span class="thread-title">${escape(t.subject||'Без темы')}</span><span class="thread-info">№${t.id} ${escape(t.name||'Аноним')} ${t.timestamp}</span></div>${t.fileData?`<img class="thread-image" src="${t.fileData}">`:''}<div class="thread-comment">${escape(t.comment).replace(/\n/g,'<br>')}</div><button class="reply-btn" data-id="${t.id}">Ответить</button><div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div><div class="reply-form" id="reply-form-${t.id}" style="display:none"><input type="text" id="replyName-${t.id}" placeholder="Имя"><textarea id="replyComment-${t.id}" rows="2" placeholder="Текст"></textarea><button class="submit-reply" data-id="${t.id}">Отправить</button><button class="cancel-reply" data-id="${t.id}">Отмена</button></div></div>`;
+    }
+    c.innerHTML=html;
     attachEvents();
-    let sc=document.getElementById('threadCount');
-    if(sc)sc.innerText=threads.length;
+    updateStats();
 }
 
 function renderReplies(r){
-    if(!r||!r.length)return'<div>Нет ответов</div>';
-    let h='';
+    if(!r||!r.length)return'<div style="color:#777;padding:5px;">💬 Нет ответов</div>';
+    let html='';
     for(let rep of r){
-        h+=`<div class="reply"><strong>${escape(rep.name||'Аноним')}</strong> ${rep.timestamp}<div>${escape(rep.comment)}</div></div>`;
+        html+=`<div class="reply"><strong>${escape(rep.name||'Аноним')}</strong> <span style="color:#888;font-size:11px;">${rep.timestamp}</span><div>${escape(rep.comment)}</div></div>`;
     }
-    return h;
+    return html;
 }
 
 function attachEvents(){
     document.querySelectorAll('.reply-btn').forEach(btn=>{
         btn.onclick=()=>{
-            let id=btn.dataset.id;
-            let f=document.getElementById(`reply-form-${id}`);
+            const id=btn.dataset.id;
+            const f=document.getElementById(`reply-form-${id}`);
             if(f)f.style.display=f.style.display==='block'?'none':'block';
         };
     });
     document.querySelectorAll('.cancel-reply').forEach(btn=>{
         btn.onclick=()=>{
-            let f=document.getElementById(`reply-form-${btn.dataset.id}`);
+            const f=document.getElementById(`reply-form-${btn.dataset.id}`);
             if(f)f.style.display='none';
         };
     });
     document.querySelectorAll('.submit-reply').forEach(btn=>{
-        btn.onclick=async()=>{
-            let id=parseInt(btn.dataset.id);
-            let name=document.getElementById(`replyName-${id}`)?.value||'';
-            let comment=document.getElementById(`replyComment-${id}`)?.value||'';
-            if(!comment)return;
-            let t=threads.find(t=>t.id===id);
-            if(t){
-                t.replies=t.replies||[];
-                t.replies.push({id:nextReply++,name:name||'Аноним',comment:comment,timestamp:new Date().toLocaleString()});
-                render();
-                await save();
-            }
-            document.getElementById(`reply-form-${id}`).style.display='none';
-            document.getElementById(`replyName-${id}`).value='';
-            document.getElementById(`replyComment-${id}`).value='';
+        btn.onclick=()=>{
+            alert('⚠️ Создание ответов временно отключено. Редактируйте Google Sheets вручную.');
         };
     });
 }
 
-function escape(s){if(!s)return '';return s.replace(/[&<>]/g,m=>m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');}
+function updateStats(){
+    const sc=document.getElementById('threadCount');
+    if(sc)sc.innerText=threads.length;
+}
+
+function escape(s){
+    if(!s)return '';
+    return s.replace(/[&<>]/g,m=>m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+}
 
 let form=document.getElementById('newThreadForm');
-let fileInp=document.getElementById('threadFile');
 if(form){
-    form.onsubmit=async(e)=>{
+    form.onsubmit=(e)=>{
         e.preventDefault();
-        let subj=document.getElementById('threadSubject').value.trim();
-        let name=document.getElementById('threadName').value.trim();
-        let com=document.getElementById('threadComment').value.trim();
-        if(!com)return;
-        let file=fileInp?.files[0];
-        let fileData=null;
-        if(file){
-            if(!file.type.startsWith('image/')){alert('Только изображения');return;}
-            fileData=await new Promise(res=>{let r=new FileReader();r.onload=ev=>res(ev.target.result);r.readAsDataURL(file);});
-        }
-        threads.unshift({id:nextId++,board:BOARD,subject:subj,name:name||'Аноним',comment:com,fileData:fileData,timestamp:new Date().toLocaleString(),replies:[]});
-        render();
-        await save();
-        form.reset();
-        if(fileInp&&document.getElementById('fileChosen'))document.getElementById('fileChosen').textContent='Файл не выбран';
+        alert('⚠️ Создание тредов временно отключено. Редактируйте Google Sheets вручную.\n\nСсылка: https://docs.google.com/spreadsheets/d/'+SHEET_ID);
     };
 }
 
-load();
-setInterval(()=>{if(!syncing)load();},30000);
+loadFromSheets();
+setInterval(loadFromSheets,30000);
 })();
