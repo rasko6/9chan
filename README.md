@@ -22,33 +22,6 @@
 - Адаптивный дизайн
 - Немецкая цветовая гамма
 
-## Структура
-
-```
-9chan/
-├── index.html
-├── 404.html
-├── icon.png
-├── hitme.png
-├── b.png
-├── g.png
-├── a.png
-├── pol.png
-├── d.png
-├── k.png
-├── styles/
-│   ├── base.css
-│   └── base-phone.css
-├── scripts/
-│   └── script.js
-└── board/
-    ├── b.html
-    ├── g.html
-    ├── a.html
-    ├── pol.html
-    ├── d.html
-    └── k.html
-```
 
 ## Технологии
 
