@@ -70,32 +70,8 @@
             </ul>
         </nav>
 
-        <div class="thread-form-container">
-            <form id="newThreadForm" enctype="multipart/form-data">
-                <div class="form-row">
-                    <input type="text" id="threadSubject" placeholder="Тема (необязательно)" maxlength="100">
-                    <input type="text" id="threadName" placeholder="Имя (опционально)" maxlength="50">
-                </div>
-                <div class="form-row">
-                    <textarea id="threadComment" rows="3" placeholder="Комментарий..." required></textarea>
-                </div>
-                <div class="form-row captcha-row">
-                    <div class="captcha-container">
-                        <span id="captchaQuestion" class="captcha-question"></span>
-                        <input type="text" id="captchaAnswer" placeholder="Ответ" class="captcha-input">
-                    </div>
-                </div>
-                <div class="form-row file-row">
-                    <label for="threadFile" class="file-label">📁 Прикрепить файл</label>
-                    <input type="file" id="threadFile" accept="image/png,image/jpeg,image/gif,image/webp">
-                    <span class="file-name" id="fileChosen">Файл не выбран</span>
-                    <button type="submit" id="submitThread" class="german-btn">Создать тред</button>
-                </div>
-            </form>
-        </div>
-
         <div class="board-stats">
-            <span>🔥 Тредов: <span id="threadCount">0</span></span>
+            <span>🔥 Постов: <span id="threadCount">0</span></span>
         </div>
 
         <div class="threads-container" id="threadsContainer">
