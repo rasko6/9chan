@@ -3,12 +3,10 @@
     let openReplyForms = new Set();
     let replyTexts = new Map();
     let replyNames = new Map();
-    let replyFileData = new Map(); // Храним base64 файлов
-    let replyCaptchaAnswers = new Map(); // Храним правильные ответы капчи
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
-    // Капча для создания треда
+    // Капча
     let currentCaptcha = null;
     let captchaQuestionElement = null;
     let captchaAnswerElement = null;
@@ -61,25 +59,6 @@
         captchaQuestionElement = document.getElementById('captchaQuestion');
         captchaAnswerElement = document.getElementById('captchaAnswer');
         resetCaptcha();
-    }
-    
-    // Функция для генерации капчи ответа
-    function generateReplyCaptcha() {
-        const n1 = Math.floor(Math.random() * 10) + 1;
-        const n2 = Math.floor(Math.random() * 10) + 1;
-        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-        let q, a;
-        if(op === '+') {
-            q = `${n1} + ${n2}`;
-            a = n1 + n2;
-        } else if(op === '-') {
-            q = `${n1} - ${n2}`;
-            a = n1 - n2;
-        } else {
-            q = `${n1} * ${n2}`;
-            a = n1 * n2;
-        }
-        return {question: q, answer: a.toString()};
     }
     
     async function loadFromSheets() {
@@ -188,13 +167,11 @@
         }
     }
     
-    // Сохраняем состояние всех форм
-    function saveAllFormStates() {
+    // Сохраняем только текст и открытые формы (без файлов)
+    function saveFormStates() {
         openReplyForms.clear();
         replyTexts.clear();
         replyNames.clear();
-        replyFileData.clear();
-        replyCaptchaAnswers.clear();
         
         document.querySelectorAll('.reply-form').forEach(form => {
             if(form.style.display === 'block') {
@@ -203,31 +180,15 @@
                 
                 const textarea = document.getElementById(`replyComment-${id}`);
                 const nameInput = document.getElementById(`replyName-${id}`);
-                const fileInput = document.getElementById(`replyFile-${id}`);
-                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
                 
                 if(textarea) replyTexts.set(id, textarea.value);
                 if(nameInput) replyNames.set(id, nameInput.value);
-                if(fileInput && fileInput.files && fileInput.files[0]) {
-                    // Сохраняем файл как base64
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        replyFileData.set(id, e.target.result);
-                    };
-                    reader.readAsDataURL(fileInput.files[0]);
-                }
-                if(captchaQ && captchaQ.dataset.answer) {
-                    replyCaptchaAnswers.set(id, {
-                        question: captchaQ.textContent,
-                        answer: captchaQ.dataset.answer
-                    });
-                }
             }
         });
     }
     
-    // Восстанавливаем состояние форм
-    function restoreAllFormStates() {
+    // Восстанавливаем текст и открытые формы
+    function restoreFormStates() {
         openReplyForms.forEach(id => {
             const form = document.getElementById(`reply-form-${id}`);
             if(form) {
@@ -235,31 +196,29 @@
                 
                 const textarea = document.getElementById(`replyComment-${id}`);
                 const nameInput = document.getElementById(`replyName-${id}`);
-                const fileSpan = document.getElementById(`replyFileName-${id}`);
-                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
-                const captchaA = document.getElementById(`replyCaptchaA-${id}`);
                 
                 if(textarea && replyTexts.has(id)) textarea.value = replyTexts.get(id);
                 if(nameInput && replyNames.has(id)) nameInput.value = replyNames.get(id);
                 
-                // Восстанавливаем капчу
-                if(captchaQ && replyCaptchaAnswers.has(id)) {
-                    const saved = replyCaptchaAnswers.get(id);
-                    captchaQ.textContent = saved.question;
-                    captchaQ.dataset.answer = saved.answer;
-                    if(captchaA) captchaA.value = '';
-                } else if(captchaQ) {
-                    const newCaptcha = generateReplyCaptcha();
-                    captchaQ.textContent = newCaptcha.question + ' = ?';
-                    captchaQ.dataset.answer = newCaptcha.answer;
-                    if(captchaA) captchaA.value = '';
-                }
-                
-                // Восстанавливаем имя файла если есть
-                if(fileSpan && replyFileData.has(id)) {
-                    fileSpan.textContent = 'Файл выбран';
-                } else if(fileSpan) {
-                    fileSpan.textContent = 'Файл не выбран';
+                // Обновляем капчу для восстановленной формы
+                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
+                if(captchaQ) {
+                    const n1 = Math.floor(Math.random() * 10) + 1;
+                    const n2 = Math.floor(Math.random() * 10) + 1;
+                    const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+                    let q, a;
+                    if(op === '+') {
+                        q = `${n1} + ${n2}`;
+                        a = n1 + n2;
+                    } else if(op === '-') {
+                        q = `${n1} - ${n2}`;
+                        a = n1 - n2;
+                    } else {
+                        q = `${n1} * ${n2}`;
+                        a = n1 * n2;
+                    }
+                    captchaQ.textContent = q + ' = ?';
+                    captchaQ.dataset.answer = a;
                 }
             }
         });
@@ -323,8 +282,8 @@
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
         
-        // Восстанавливаем открытые формы после рендера
-        setTimeout(() => restoreAllFormStates(), 50);
+        // Восстанавливаем формы после рендера
+        setTimeout(() => restoreFormStates(), 50);
     }
     
     function renderReplies(r) {
@@ -367,9 +326,22 @@
             const id = form.id.replace('reply-form-', '');
             const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
             if(captchaQ && !captchaQ.dataset.answer) {
-                const newCaptcha = generateReplyCaptcha();
-                captchaQ.textContent = newCaptcha.question + ' = ?';
-                captchaQ.dataset.answer = newCaptcha.answer;
+                const n1 = Math.floor(Math.random() * 10) + 1;
+                const n2 = Math.floor(Math.random() * 10) + 1;
+                const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+                let q, a;
+                if(op === '+') {
+                    q = `${n1} + ${n2}`;
+                    a = n1 + n2;
+                } else if(op === '-') {
+                    q = `${n1} - ${n2}`;
+                    a = n1 - n2;
+                } else {
+                    q = `${n1} * ${n2}`;
+                    a = n1 * n2;
+                }
+                captchaQ.textContent = q + ' = ?';
+                captchaQ.dataset.answer = a;
             }
         });
         
@@ -386,16 +358,15 @@
                     
                     if(!isVisible) {
                         openReplyForms.add(id);
-                        const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
-                        if(captchaQ) {
-                            const newCaptcha = generateReplyCaptcha();
-                            captchaQ.textContent = newCaptcha.question + ' = ?';
-                            captchaQ.dataset.answer = newCaptcha.answer;
-                            const captchaA = document.getElementById(`replyCaptchaA-${id}`);
-                            if(captchaA) captchaA.value = '';
-                        }
+                        // Сохраняем текущий текст
+                        const textarea = document.getElementById(`replyComment-${id}`);
+                        const nameInput = document.getElementById(`replyName-${id}`);
+                        if(textarea) replyTexts.set(id, textarea.value);
+                        if(nameInput) replyNames.set(id, nameInput.value);
                     } else {
                         openReplyForms.delete(id);
+                        replyTexts.delete(id);
+                        replyNames.delete(id);
                     }
                 }
             };
@@ -408,6 +379,8 @@
                 if(form) {
                     form.style.display = 'none';
                     openReplyForms.delete(btn.dataset.id);
+                    replyTexts.delete(btn.dataset.id);
+                    replyNames.delete(btn.dataset.id);
                 }
             };
         });
@@ -424,9 +397,22 @@
                     const correctAnswer = captchaQ.dataset.answer;
                     if(userAnswer !== correctAnswer) {
                         alert('❌ Неправильный ответ капчи!');
-                        const newCaptcha = generateReplyCaptcha();
-                        captchaQ.textContent = newCaptcha.question + ' = ?';
-                        captchaQ.dataset.answer = newCaptcha.answer;
+                        const n1 = Math.floor(Math.random() * 10) + 1;
+                        const n2 = Math.floor(Math.random() * 10) + 1;
+                        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+                        let q, a;
+                        if(op === '+') {
+                            q = `${n1} + ${n2}`;
+                            a = n1 + n2;
+                        } else if(op === '-') {
+                            q = `${n1} - ${n2}`;
+                            a = n1 - n2;
+                        } else {
+                            q = `${n1} * ${n2}`;
+                            a = n1 * n2;
+                        }
+                        captchaQ.textContent = q + ' = ?';
+                        captchaQ.dataset.answer = a;
                         captchaA.value = '';
                         return;
                     }
@@ -464,6 +450,8 @@
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) form.style.display = 'none';
                 openReplyForms.delete(id);
+                replyTexts.delete(id);
+                replyNames.delete(id);
                 
                 btn.disabled = false;
                 btn.textContent = '✉️ Отправить';
@@ -539,13 +527,13 @@
         };
     }
     
-    // Обновление с сохранением состояния
+    // Обновление с сохранением состояния (без файлов)
     async function refreshWithState() {
-        saveAllFormStates();
+        saveFormStates();
         await loadFromSheets();
     }
     
     initCaptcha();
     loadFromSheets();
-    setInterval(refreshWithState, 10000);
+    setInterval(refreshWithState, 15000);
 })();
