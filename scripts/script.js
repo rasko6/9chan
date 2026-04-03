@@ -85,9 +85,11 @@
     }
     
     async function addThread(subject, name, comment, fileData = null) {
+        console.log('Current BOARD value:', BOARD); // Debug
+        
         const newThread = {
             id: getNextId(),
-            board: BOARD,
+            board: BOARD,  // This should be 'b', 'a', 'g', etc.
             subject: subject || 'Без темы',
             name: name || 'Аноним',
             comment: comment || '',
@@ -96,6 +98,8 @@
             replies: [],
             pinned: false
         };
+        
+        console.log('Saving thread with board:', newThread.board); // Debug
         
         threads.unshift(newThread);
         render();
