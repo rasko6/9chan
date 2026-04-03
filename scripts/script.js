@@ -447,4 +447,18 @@
     initCaptcha();
     loadFromSheets();
     setInterval(refreshWithState, 15000);
+        
+    initCaptcha();
+    loadFromSheets();
+    setInterval(refreshWithState, 15000);
+    (function addMetaScript() {
+        if (!document.querySelector('script[src*="meta.js"]')) {
+            const metaScript = document.createElement('script');
+            metaScript.src = '../scripts/meta.js';
+            metaScript.onload = () => {
+                console.log('✅ meta.js загружен, метатеги установлены для доски:', window.CURRENT_BOARD);
+            };
+            document.head.appendChild(metaScript);
+        }
+    })();
 })();
