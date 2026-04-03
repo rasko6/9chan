@@ -1,7 +1,7 @@
 (function(){
     let threads = [];
     const BOARD = window.CURRENT_BOARD || 'b';
-    const API_URL = 'https://script.google.com/macros/s/AKfycbztCl0ICV19a6UAJcUWw8nxhNliuHm4hmMLg6MVtHhnmBkyZdKH56G7TuBgqiHdO5gM/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
     function generateCaptcha() {
         const n1 = Math.floor(Math.random() * 10) + 1;
