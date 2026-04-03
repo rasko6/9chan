@@ -98,53 +98,78 @@
         }
     }
     
-    async function loadFromSheets() {
-        try {
-            const saved = localStorage.getItem(`9chan_${BOARD}`);
-            if(saved) {
-                threads = JSON.parse(saved);
-                render();
-                updateSyncStatus('✅ Загружено');
-            }
-            
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`)}`;
-            const res = await fetch(url);
-            const text = await res.text();
-            const json = JSON.parse(text);
-            const rows = json.table.rows;
-            
-            const remoteThreads = [];
-            for(let i = 0; i < rows.length; i++) {
-                const row = rows[i].c;
-                if(row && row[0] && row[0].v) {
-                    remoteThreads.push({
-                        id: parseInt(row[0].v),
-                        board: row[1]?.v || 'b',
-                        subject: row[2]?.v || '',
-                        name: row[3]?.v || 'Аноним',
-                        comment: row[4]?.v || '',
-                        fileData: row[5]?.v || null,
-                        timestamp: formatDate(row[6]?.v),
-                        replies: row[7]?.v ? JSON.parse(row[7].v) : []
-                    });
-                }
-            }
-            
-            if(remoteThreads.length > 0) {
-                const remoteFiltered = remoteThreads.filter(t => t.board === BOARD);
-                if(remoteFiltered.length > 0) {
-                    threads = remoteFiltered;
-                    saveToLocal();
-                    render();
-                    updateSyncStatus('✅ Загружено');
-                }
-            }
-        } catch(e) {
-            console.error(e);
-            updateSyncStatus('⚠️ Офлайн', true);
-            loadLocal();
+   async function loadFromSheets() {
+    try {
+        const saved = localStorage.getItem(`9chan_${BOARD}`);
+        if(saved) {
+            threads = JSON.parse(saved);
+            render();
+            updateSyncStatus('📱 Локальный режим', true);
+        } else {
+            threads = [{
+                id: Date.now(),
+                board: BOARD,
+                subject: `Добро пожаловать на /${BOARD}/`,
+                name: 'Admin',
+                comment: 'Привет! Создавайте треды и отвечайте.',
+                fileData: null,
+                timestamp: new Date().toLocaleString(),
+                replies: []
+            }];
+            saveToLocal();
+            render();
+            updateSyncStatus('📱 Готов к работе', true);
         }
+        
+        // Try to sync with Google Sheets
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
+        const res = await fetch(url);
+        const text = await res.text();
+        
+        // Fix: Remove the /*O_o*/ prefix and trailing ); if present
+        let cleanText = text;
+        if (cleanText.startsWith('/*O_o*/')) {
+            cleanText = cleanText.replace('/*O_o*/', '');
+        }
+        if (cleanText.startsWith('google.visualization.Query.setResponse(')) {
+            cleanText = cleanText.replace('google.visualization.Query.setResponse(', '');
+        }
+        if (cleanText.endsWith(');')) {
+            cleanText = cleanText.slice(0, -2);
+        }
+        
+        const json = JSON.parse(cleanText);
+        const rows = json.table.rows;
+        
+        const remoteThreads = [];
+        for(let i = 0; i < rows.length; i++) {
+            const row = rows[i].c;
+            if(row && row[0] && row[0].v) {
+                remoteThreads.push({
+                    id: parseInt(row[0].v),
+                    board: row[1]?.v || 'b',
+                    subject: row[2]?.v || '',
+                    name: row[3]?.v || 'Аноним',
+                    comment: row[4]?.v || '',
+                    fileData: row[5]?.v || null,
+                    timestamp: formatDate(row[6]?.v),
+                    replies: row[7]?.v ? JSON.parse(row[7].v) : []
+                });
+            }
+        }
+        
+        const remoteFiltered = remoteThreads.filter(t => t.board === BOARD);
+        if(remoteFiltered.length > 0) {
+            threads = remoteFiltered;
+            saveToLocal();
+            render();
+            updateSyncStatus('✅ Синхронизировано');
+        }
+    } catch(e) {
+        console.error('Sync error:', e);
+        updateSyncStatus('⚠️ Офлайн', true);
     }
+}
     
     function loadLocal() {
         const saved = localStorage.getItem(`9chan_${BOARD}`);
