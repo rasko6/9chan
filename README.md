@@ -28,7 +28,8 @@
 - HTML5
 - CSS3
 - JavaScript
-- GitHub Gist API
+- GitHub Gist API (нет)
+- Google sheets
 
 ## Ссылка
 
