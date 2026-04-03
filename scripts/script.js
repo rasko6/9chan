@@ -79,64 +79,71 @@
     
     async function loadFromSheets() {
         try {
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
+            // Get CSV instead of JSON
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=threads`;
             const res = await fetch(url);
-            const text = await res.text();
+            const csv = await res.text();
             
-            // Method 1: Remove the Google wrapper
-            let jsonText = text;
-            
-            // Remove /*O_o*/ 
-            jsonText = jsonText.replace(/\/\*O_o\*\//g, '');
-            
-            // Remove google.visualization.Query.setResponse(
-            jsonText = jsonText.replace(/^google\.visualization\.Query\.setResponse\(/, '');
-            
-            // Remove trailing );
-            jsonText = jsonText.replace(/\);$/, '');
-            
-            // Now parse as JSON
-            const json = JSON.parse(jsonText);
-            const rows = json.table.rows;
+            // Parse CSV rows
+            const lines = csv.split('\n');
+            if(lines.length < 2) {
+                loadLocal();
+                return;
+            }
             
             const remoteThreads = [];
-            for(let i = 0; i < rows.length; i++) {
-                const row = rows[i].c;
-                if(row && row[0] && row[0].v !== null && row[0].v !== undefined) {
+            
+            // Skip header line (start from i=1)
+            for(let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                
+                // Parse CSV respecting quotes
+                const row = [];
+                let inQuote = false;
+                let current = '';
+                
+                for(let char of line) {
+                    if(char === '"') {
+                        inQuote = !inQuote;
+                    } else if(char === ',' && !inQuote) {
+                        row.push(current);
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                row.push(current);
+                
+                // Clean up quotes
+                for(let j = 0; j < row.length; j++) {
+                    if(row[j].startsWith('"') && row[j].endsWith('"')) {
+                        row[j] = row[j].substring(1, row[j].length - 1);
+                    }
+                }
+                
+                if(row[0] && row[0] !== 'id') {
                     let timestamp = new Date().toLocaleString();
-                    if(row[6] && row[6].v) {
-                        const dateMatch = row[6].v.toString().match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-                        if(dateMatch) {
-                            const date = new Date(
-                                parseInt(dateMatch[1]),
-                                parseInt(dateMatch[2]),
-                                parseInt(dateMatch[3]),
-                                parseInt(dateMatch[4]),
-                                parseInt(dateMatch[5]),
-                                parseInt(dateMatch[6])
-                            );
-                            timestamp = date.toLocaleString();
-                        } else {
-                            timestamp = row[6].v.toString();
-                        }
+                    if(row[6]) {
+                        timestamp = row[6];
                     }
                     
                     let replies = [];
-                    if(row[7] && row[7].v) {
+                    if(row[7] && row[7] !== '[]') {
                         try {
-                            replies = JSON.parse(row[7].v);
+                            replies = JSON.parse(row[7]);
                         } catch(e) {
                             replies = [];
                         }
                     }
                     
                     remoteThreads.push({
-                        id: parseInt(row[0].v),
-                        board: row[1]?.v || 'b',
-                        subject: row[2]?.v || '',
-                        name: row[3]?.v || 'Аноним',
-                        comment: row[4]?.v || '',
-                        fileData: row[5]?.v || null,
+                        id: parseInt(row[0]),
+                        board: row[1] || 'b',
+                        subject: row[2] || '',
+                        name: row[3] || 'Аноним',
+                        comment: row[4] || '',
+                        fileData: row[5] || null,
                         timestamp: timestamp,
                         replies: replies
                     });
@@ -154,7 +161,6 @@
             }
         } catch(e) {
             console.error('Sync error:', e);
-            console.log('Raw response:', text.substring(0, 200));
             updateSyncStatus('⚠️ Офлайн', true);
             loadLocal();
         }
