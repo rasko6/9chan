@@ -19,13 +19,8 @@
             margin: 0 auto;
         }
         
-        /* GLITCH EFFECT OVERLAY - CSS only, no WebGL bugs */
-        body {
-            position: relative;
-        }
-        
-        body::before {
-            content: '';
+        /* Canvas overlay for shader effect */
+        #shaderCanvas {
             position: fixed;
             top: 0;
             left: 0;
@@ -33,94 +28,21 @@
             height: 100%;
             pointer-events: none;
             z-index: 9999;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 255, 255, 0.03) 0px,
-                rgba(255, 0, 255, 0.03) 2px,
-                transparent 2px,
-                transparent 6px
-            );
-            animation: glitchScan 8s linear infinite;
+            opacity: 0.5;
+            mix-blend-mode: screen;
         }
         
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9998;
-            background: rgba(255, 0, 0, 0.02);
-            mix-blend-mode: multiply;
-            animation: chromaticAberration 0.2s infinite;
-        }
-        
-        @keyframes glitchScan {
-            0% { transform: translateY(0); opacity: 0.3; }
-            50% { transform: translateY(2px); opacity: 0.6; }
-            100% { transform: translateY(0); opacity: 0.3; }
-        }
-        
-        @keyframes chromaticAberration {
-            0% { background: rgba(255, 0, 0, 0.02); }
-            25% { background: rgba(0, 255, 0, 0.02); }
-            50% { background: rgba(0, 0, 255, 0.02); }
-            75% { background: rgba(255, 0, 255, 0.02); }
-            100% { background: rgba(255, 0, 0, 0.02); }
-        }
-        
-        /* Random glitch effect on images */
-        img {
-            animation: imageGlitch 3s infinite;
-        }
-        
-        @keyframes imageGlitch {
-            0%, 100% { filter: none; }
-            95% { filter: none; }
-            96% { filter: hue-rotate(90deg) contrast(200%); }
-            97% { filter: none; }
-            98% { filter: brightness(150%) saturate(200%); }
-            99% { filter: none; }
-        }
-        
-        /* Occasional text glitch */
-        .thread-card {
-            animation: textGlitch 10s infinite;
+        body {
             position: relative;
-        }
-        
-        @keyframes textGlitch {
-            0%, 98%, 100% { transform: none; }
-            99% { transform: skewX(2deg); }
-            99.5% { transform: skewX(-2deg); }
-        }
-        
-        /* Static noise overlay */
-        .noise-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9997;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.04"/></svg>');
-            opacity: 0.15;
-            mix-blend-mode: overlay;
         }
     </style>
 </head>
 <body>
-    <!-- Noise overlay -->
-    <div class="noise-overlay"></div>
-    
     <div class="container">
         <header class="board-header">
             <div class="logo-area">
                 <img src="../icon.png" alt="9chan" class="hitme-icon" onerror="this.src='../hitme.png'">
-                <h1>/c/ - Creepypasta Board</h1>
+                <h1>/c/ - GLITCH</h1>
                 <div class="mascot-placeholder">
                     <img src="../icon.png" alt="mascot" style="width:48px;height:48px;object-fit:contain;border-radius:50%;" onerror="this.src='../hitme.png'">
                 </div>
@@ -193,43 +115,171 @@
         </footer>
     </div>
 
+    <canvas id="shaderCanvas"></canvas>
+
     <script>
         window.CURRENT_BOARD = 'c';
     </script>
     
-    <!-- Optional: JavaScript glitch effect (toggle every few seconds) -->
+    <!-- GLSL Shader implementation - exact conversion of your HLSL -->
     <script>
-        // Random glitch class toggle for extra effect
-        setInterval(() => {
-            if (Math.random() < 0.05) { // 5% chance every 3 seconds
-                document.body.classList.add('glitch-flash');
-                setTimeout(() => {
-                    document.body.classList.remove('glitch-flash');
-                }, 100);
-            }
-        }, 3000);
+        const canvas = document.getElementById('shaderCanvas');
+        const gl = canvas.getContext('webgl');
         
-        // Add CSS for the flash effect
-        const style = document.createElement('style');
-        style.textContent = `
-            .glitch-flash::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(255, 255, 255, 0.9);
-                pointer-events: none;
-                z-index: 10000;
-                animation: flash 0.1s ease-out;
+        if (gl) {
+            // Vertex shader
+            const vsSource = `
+                attribute vec2 a_position;
+                varying vec2 v_texCoord;
+                void main() {
+                    gl_Position = vec4(a_position, 0.0, 1.0);
+                    v_texCoord = a_position * 0.5 + 0.5;
+                }
+            `;
+            
+            // Fragment shader - EXACT conversion of your HLSL
+            const fsSource = `
+                precision highp float;
+                uniform sampler2D u_texture;
+                uniform float u_time;
+                uniform vec2 u_textureSize;
+                uniform float u_chromaticAberration;
+                
+                varying vec2 v_texCoord;
+                
+                // Simple noise function
+                float noise(vec2 p) {
+                    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+                }
+                
+                void main() {
+                    vec2 pixelationFactor = 1.0 / u_textureSize;
+                    vec2 coords = floor(v_texCoord / pixelationFactor) * pixelationFactor;
+                    
+                    // Calculate values for glitch noise
+                    float glitchPixelationFactor = 72.0;
+                    float timeStepFactor = 11.0;
+                    float glitchCoords = floor(coords.y * glitchPixelationFactor) / glitchPixelationFactor + floor(u_time * timeStepFactor) / timeStepFactor;
+                    float glitchNoise = noise(vec2(glitchCoords, 0.0));
+                    
+                    glitchCoords = floor(coords.y * glitchPixelationFactor * 0.5) / glitchPixelationFactor + floor(u_time * timeStepFactor * 1.5) / timeStepFactor;
+                    glitchNoise = (glitchNoise + noise(vec2(glitchCoords, 0.0))) * 0.67;
+                    
+                    glitchCoords = floor(coords.y * glitchPixelationFactor * 0.4) / glitchPixelationFactor + floor(u_time * timeStepFactor * 1.3) / timeStepFactor;
+                    glitchNoise = (glitchNoise + noise(vec2(glitchCoords, 0.0))) * 0.62;
+                    
+                    // Perform glitch offset and re-pixelate
+                    coords.x += smoothstep(0.8, 1.0, glitchNoise) * 0.05;
+                    coords = round(coords / pixelationFactor) * pixelationFactor;
+                    
+                    float r = texture2D(u_texture, coords + vec2(-0.707, 0.0) / u_textureSize * u_chromaticAberration).r;
+                    float g = texture2D(u_texture, coords + vec2(0.707, 0.0) / u_textureSize * u_chromaticAberration).g;
+                    float b = texture2D(u_texture, coords + vec2(0.0, 0.707) / u_textureSize * u_chromaticAberration).b;
+                    float a = texture2D(u_texture, coords).a;
+                    
+                    gl_FragColor = vec4(r, g, b, a);
+                }
+            `;
+            
+            function compileShader(source, type) {
+                const shader = gl.createShader(type);
+                gl.shaderSource(shader, source);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    console.error(gl.getShaderInfoLog(shader));
+                    return null;
+                }
+                return shader;
             }
-            @keyframes flash {
-                0% { opacity: 1; }
-                100% { opacity: 0; }
+            
+            const vs = compileShader(vsSource, gl.VERTEX_SHADER);
+            const fs = compileShader(fsSource, gl.FRAGMENT_SHADER);
+            const program = gl.createProgram();
+            gl.attachShader(program, vs);
+            gl.attachShader(program, fs);
+            gl.linkProgram(program);
+            gl.useProgram(program);
+            
+            // Setup geometry
+            const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+            const buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+            
+            const posLoc = gl.getAttribLocation(program, 'a_position');
+            gl.enableVertexAttribArray(posLoc);
+            gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+            
+            // Get uniform locations
+            const textureLoc = gl.getUniformLocation(program, 'u_texture');
+            const timeLoc = gl.getUniformLocation(program, 'u_time');
+            const textureSizeLoc = gl.getUniformLocation(program, 'u_textureSize');
+            const aberrationLoc = gl.getUniformLocation(program, 'u_chromaticAberration');
+            
+            // Create texture for page capture
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            
+            let startTime = performance.now() / 1000;
+            
+            function captureAndRender() {
+                // Capture page as texture
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                document.body.style.backgroundColor = '#1a1a1a';
+                
+                // Draw the container content
+                const container = document.querySelector('.container');
+                if (container) {
+                    html2canvas(container, {
+                        scale: 0.5,
+                        backgroundColor: '#eef2ff'
+                    }).then(canvasImg => {
+                        gl.bindTexture(gl.TEXTURE_2D, texture);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvasImg);
+                        
+                        const time = (performance.now() / 1000 - startTime) * 0.5;
+                        
+                        gl.viewport(0, 0, canvas.width, canvas.height);
+                        gl.uniform1i(textureLoc, 0);
+                        gl.uniform1f(timeLoc, time);
+                        gl.uniform2f(textureSizeLoc, canvas.width, canvas.height);
+                        gl.uniform1f(aberrationLoc, 15.0);
+                        
+                        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+                        requestAnimationFrame(captureAndRender);
+                    }).catch(() => {
+                        requestAnimationFrame(captureAndRender);
+                    });
+                } else {
+                    requestAnimationFrame(captureAndRender);
+                }
             }
-        `;
-        document.head.appendChild(style);
+            
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            
+            // Add html2canvas library
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+            script.onload = () => {
+                window.addEventListener('resize', resizeCanvas);
+                resizeCanvas();
+                captureAndRender();
+            };
+            document.head.appendChild(script);
+        } else {
+            console.error('WebGL not supported');
+        }
     </script>
     
     <script src="../scripts/script.js"></script>
