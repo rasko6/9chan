@@ -49,12 +49,48 @@
     background: radial-gradient(circle, transparent 40%, #200 100%);
     pointer-events: none;
   }
+    hr {
+    border: none;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #ff0000, transparent);
+    box-shadow: 0 0 15px #f00, 0 0 5px #fff;
+    width: 80%;
+    margin: 20px auto;
+    position: relative;
+    animation: bleed 3s infinite ease-in-out;
+  }
+
+  /* Эффект пульсации и "стекания" */
+  @keyframes bleed {
+    0% { transform: scaleX(1); opacity: 0.3; filter: blur(1px); }
+    50% { transform: scaleX(1.1); opacity: 1; filter: blur(0px); }
+    100% { transform: scaleX(1); opacity: 0.3; filter: blur(1px); }
+  }
+
+  /* Добавим маленькую "каплю" под линию */
+  hr::after {
+    content: "▼";
+    position: absolute;
+    left: 50%;
+    top: 2px;
+    color: #8b0000;
+    font-size: 10px;
+    animation: drop 2s infinite;
+  }
+
+  @keyframes drop {
+    0% { transform: translateY(0); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateY(50px); opacity: 0; }
+  }
+
 </style>
 
 <body>
 
-<h1>test</h1>
-<p>test</p>
-
+<h1>SCARY PAGE</h1>
+<p>Добро пожаловать на страницу официальной крипипасты по 9-чан, созданной админом rasko6.</p>
+  <hr>
+<p>Первая часть: Как Оно Началось</p>
 </body>
 </html>
