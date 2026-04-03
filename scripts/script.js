@@ -57,7 +57,9 @@
                     parseInt(dateMatch[6])
                 ).toLocaleString();
             }
-            return dateValue;
+            if(dateValue.match(/\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}/)) {
+                return dateValue;
+            }
         }
         return new Date().toLocaleString();
     }
@@ -71,40 +73,8 @@
     }
     
     async function saveToSheets() {
-        try {
-            const sheetData = threads.map(t => ({
-                id: t.id,
-                board: t.board,
-                subject: t.subject,
-                name: t.name,
-                comment: t.comment,
-                fileData: t.fileData || '',
-                timestamp: t.timestamp,
-                replies: JSON.stringify(t.replies)
-            }));
-            
-            for (let data of sheetData) {
-                const params = new URLSearchParams();
-                params.append('id', data.id);
-                params.append('board', data.board);
-                params.append('subject', data.subject);
-                params.append('name', data.name);
-                params.append('comment', data.comment);
-                params.append('fileData', data.fileData);
-                params.append('timestamp', data.timestamp);
-                params.append('replies', data.replies);
-                
-                await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent('https://script.google.com/macros/s/AKfycbxxxxx/exec')}`, {
-                    method: 'POST',
-                    mode: 'cors',
-                    body: params
-                }).catch(e => console.log('Sheet save failed'));
-            }
-            updateSyncStatus('✅ Сохранено');
-        } catch(e) {
-            console.error(e);
-            updateSyncStatus('⚠️ Локально', true);
-        }
+        alert('⚠️ Сохранение в Google Sheets требует Google Apps Script. Данные сохранены локально.');
+        updateSyncStatus('📱 Локально', true);
     }
     
     async function loadFromSheets() {
@@ -113,42 +83,28 @@
             const res = await fetch(url);
             const text = await res.text();
             
-            // Extract JSON between the parentheses
-            let jsonText = text;
-            
-            // Remove /*O_o*/ prefix if present
-            if (jsonText.startsWith('/*O_o*/')) {
-                jsonText = jsonText.slice(7);
-            }
-            
-            // Extract from google.visualization.Query.setResponse(
-            const startIndex = jsonText.indexOf('(');
-            const endIndex = jsonText.lastIndexOf(')');
-            
-            if (startIndex !== -1 && endIndex !== -1) {
-                jsonText = jsonText.substring(startIndex + 1, endIndex);
-            }
-            
+            const start = text.indexOf('{');
+            const end = text.lastIndexOf('}');
+            const jsonText = text.substring(start, end + 1);
             const json = JSON.parse(jsonText);
-            const rows = json.table.rows;
             
+            const rows = json.table.rows;
             const remoteThreads = [];
+            
             for(let i = 0; i < rows.length; i++) {
                 const row = rows[i].c;
-                if(row && row[0] && row[0].v !== null) {
+                if(row && row[0] && row[0].v !== null && row[0].v !== undefined) {
                     let timestamp = new Date().toLocaleString();
                     if(row[6] && row[6].v) {
-                        const dateMatch = row[6].v.toString().match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-                        if(dateMatch) {
-                            const date = new Date(
-                                parseInt(dateMatch[1]),
-                                parseInt(dateMatch[2]),
-                                parseInt(dateMatch[3]),
-                                parseInt(dateMatch[4]),
-                                parseInt(dateMatch[5]),
-                                parseInt(dateMatch[6])
-                            );
-                            timestamp = date.toLocaleString();
+                        timestamp = formatDate(row[6].v.toString());
+                    }
+                    
+                    let replies = [];
+                    if(row[7] && row[7].v) {
+                        try {
+                            replies = JSON.parse(row[7].v);
+                        } catch(e) {
+                            replies = [];
                         }
                     }
                     
@@ -160,7 +116,7 @@
                         comment: row[4]?.v || '',
                         fileData: row[5]?.v || null,
                         timestamp: timestamp,
-                        replies: row[7]?.v ? JSON.parse(row[7].v) : []
+                        replies: replies
                     });
                 }
             }
@@ -189,13 +145,13 @@
                 render();
             } else {
                 threads = [{
-                    id: Date.now(),
+                    id: 1,
                     board: BOARD,
-                    subject: `Добро пожаловать на /${BOARD}/`,
+                    subject: 'Добро пожаловать на 9chan',
                     name: 'Admin',
-                    comment: 'Привет! Создавайте треды и отвечайте.',
+                    comment: 'Привет! Это тестовый тред через новый БД :D',
                     fileData: null,
-                    timestamp: new Date().toLocaleString(),
+                    timestamp: '03.04.2026 14:12:17',
                     replies: []
                 }];
                 saveToLocal();
@@ -203,13 +159,13 @@
             }
         } catch(e) {
             threads = [{
-                id: Date.now(),
+                id: 1,
                 board: BOARD,
-                subject: `Добро пожаловать на /${BOARD}/`,
+                subject: 'Добро пожаловать на 9chan',
                 name: 'Admin',
-                comment: 'Привет! Создавайте треды и отвечайте.',
+                comment: 'Привет! Это тестовый тред через новый БД :D',
                 fileData: null,
-                timestamp: new Date().toLocaleString(),
+                timestamp: '03.04.2026 14:12:17',
                 replies: []
             }];
             render();
@@ -220,7 +176,7 @@
         const el = document.getElementById('syncStatusText');
         if(el) {
             el.textContent = text;
-            el.style.color = isError ? '#f44336' : '#d4af37';
+            el.style.color = isError ? '#f44336' : '#4caf50';
         }
     }
     
@@ -242,8 +198,8 @@
         };
         threads.unshift(newThread);
         saveToLocal();
-        saveToSheets();
         render();
+        updateSyncStatus('💾 Сохранено локально', true);
     }
     
     function addReply(threadId, name, comment) {
@@ -256,8 +212,13 @@
             };
             thread.replies.push(reply);
             saveToLocal();
-            saveToSheets();
             render();
+            updateSyncStatus('💾 Ответ сохранен', true);
+            setTimeout(() => {
+                if(document.getElementById('syncStatusText')?.textContent === '💾 Ответ сохранен') {
+                    updateSyncStatus('📱 Локально', true);
+                }
+            }, 2000);
         }
     }
     
@@ -327,6 +288,11 @@
     function updateStats() {
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
+        const rc = document.getElementById('replyCount');
+        if(rc) {
+            const totalReplies = threads.reduce((sum, t) => sum + (t.replies?.length || 0), 0);
+            rc.innerText = totalReplies;
+        }
     }
     
     function escape(s) {
