@@ -3,59 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>9chan - Правила и Помощь</title>
+    <title>9chan - Помощь</title>
     <link rel="icon" href="icon.png" type="image/png">
     <link rel="stylesheet" href="styles/base.css">
     <link rel="stylesheet" href="styles/base-phone.css">
     <style>
-        /* Центрирование контента без устаревшего <center> */
-        .main-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        /* Убрали фон, рамку и отступы "черной штуки" */
+        .rules {
             padding: 20px;
+            color: #fff; /* Цвет текста, чтобы он был виден на темном фоне сайта */
             max-width: 800px;
             margin: 0 auto;
+            text-align: left;
         }
-
-        .rules {
-            background: #1a1a1a;
-            border: 1px solid #d4af37;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            text-align: left; /* Текст правил лучше читать слева */
-            width: 100%;
-        }
-
+        
         .rules h3 {
             color: #d4af37;
             text-align: center;
-            margin-top: 0;
+            font-size: 1.8rem;
         }
 
         .rules ol li {
-            margin-bottom: 15px;
-            color: #eee;
+            margin-bottom: 10px;
         }
 
-        .rules ul {
-            margin-top: 10px;
-            color: #ccc;
+        .main-container {
+            text-align: center;
+            padding-top: 20px;
         }
 
         .error-image {
             max-width: 100%;
             height: auto;
-            border-radius: 10px;
             margin-top: 20px;
-        }
-
-        /* Оставил стили для каталога, если они нужны для других страниц */
-        .boards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
         }
     </style>
 </head>
@@ -71,37 +51,38 @@
             </div>
             <div class="header-links">
                 <a href="index.html">Главная</a>
-                <a href="../cat.html">Каталог</a>
-                <a href="../rules.html">Правила</a>
-                <a href="../help.html">Помощь</a>
+                <a href="cat.html">Каталог</a>
+                <a href="rules.html">Правила</a>
+                <a href="help.html">Помощь</a>
             </div>
             <div class="banner-deutsch">
                 <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
             </div>
         </header>
 
-        <main class="main-content">
-            <section class="rules">
+        <div class="main-container">
+            <div class="rules">
                 <h3>📜 Правила 9chan</h3>
                 <ol>
-                    <li><strong>Тематика:</strong> Не постите не связанные с разделом вещи. Соблюдайте тематику доски (например, в /g/ — технологии, в /a/ — аниме). Офтоп удаляется.</li>
-                    <li><strong>Уважение:</strong> Будьте уважительны к другим анонам. Без хамства и троллинга.</li>
-                    <li><strong>Обратная связь:</strong> Жалобы и предложения — только на GitHub: <br>
-                        <a href="https://github.com/rasko6/9chan/issues" target="_blank">9chan Issues</a></li>
-                    <li><strong>Запрещено:</strong>
+                    <li>Не постите не связанные с разделом вещи.<br>
+                        Соблюдайте тематику доски (например, в /g/ — технологии, в /a/ — аниме и манга). Офтоп будет удалён.</li>
+                    <li>Будьте уважительны к другим анонам. Без хамства и троллинга.</li>
+                    <li>Жалобы и предложения — только на GitHub: <br>
+                        <a href="https://github.com" target="_blank">9chan Issues</a></li>
+                    <li>Запрещены:
                         <ul>
                             <li>Спам, флуд, двойные посты.</li>
                             <li>Доксинг (публикация чужих личных данных).</li>
                             <li>Противоправный контент.</li>
                         </ul>
                     </li>
-                    <li><strong>Модерация:</strong> Администрация может удалять посты без объяснения причин.</li>
-                    <li><strong>Защита:</strong> Капча обязательна для всех — это защита от ботов.</li>
+                    <li>Администрация оставляет за собой право удалять посты.</li>
+                    <li>Капча обязательна для всех постов.</li>
                 </ol>
-            </section>
+            </div>
 
-            <img src="not_found.png" alt="cry about it" class="error-image" onerror="this.style.display='none'">
-        </main>
+            <img src="not_found.png" alt="cry about it" class="error-image">
+        </div>
 
         <footer class="board-footer">
             <div class="footer-content">
