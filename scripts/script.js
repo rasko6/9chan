@@ -1,7 +1,13 @@
 (function(){
     let threads = [];
+    let activeReplyForm = null; // Для отслеживания открытой формы
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
+    
+    // Капча - глобальная
+    let currentCaptcha = null;
+    let captchaQuestionElement = null;
+    let captchaAnswerElement = null;
     
     function generateCaptcha() {
         const n1 = Math.floor(Math.random() * 10) + 1;
@@ -21,24 +27,37 @@
         return {question: q, answer: a.toString()};
     }
     
-    let currentCaptcha = generateCaptcha();
-    const captchaQ = document.getElementById('captchaQuestion');
-    if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
+    function updateCaptchaUI() {
+        if(captchaQuestionElement) {
+            captchaQuestionElement.textContent = currentCaptcha.question + ' = ?';
+        }
+        if(captchaAnswerElement) {
+            captchaAnswerElement.value = '';
+        }
+    }
+    
+    function resetCaptcha() {
+        currentCaptcha = generateCaptcha();
+        updateCaptchaUI();
+    }
     
     function verifyCaptcha() {
-        const inputEl = document.getElementById('captchaAnswer');
-        if(!inputEl) return true;
-        if(inputEl.value.trim() !== currentCaptcha.answer) {
-            alert('❌ Неправильный ответ!');
-            currentCaptcha = generateCaptcha();
-            if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
-            inputEl.value = '';
+        if(!captchaAnswerElement) return true;
+        const userAnswer = captchaAnswerElement.value.trim();
+        if(userAnswer !== currentCaptcha.answer) {
+            alert('❌ Неправильный ответ! Попробуйте снова.');
+            resetCaptcha();
             return false;
         }
-        currentCaptcha = generateCaptcha();
-        if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
-        inputEl.value = '';
+        resetCaptcha();
         return true;
+    }
+    
+    // Инициализация капчи
+    function initCaptcha() {
+        captchaQuestionElement = document.getElementById('captchaQuestion');
+        captchaAnswerElement = document.getElementById('captchaAnswer');
+        resetCaptcha();
     }
     
     document.querySelectorAll('.mascot-placeholder').forEach(e => e.remove());
@@ -227,6 +246,12 @@
             btn.onclick = (e) => {
                 e.preventDefault();
                 const id = btn.dataset.id;
+                // Закрываем все формы
+                document.querySelectorAll('.reply-form').forEach(f => {
+                    if(f.id !== `reply-form-${id}`) {
+                        f.style.display = 'none';
+                    }
+                });
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
                     form.style.display = form.style.display === 'none' ? 'block' : 'none';
@@ -354,6 +379,8 @@
         };
     }
     
+    // Инициализация капчи при загрузке
+    initCaptcha();
     loadFromSheets();
     setInterval(loadFromSheets, 10000);
 })();
