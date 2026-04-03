@@ -3,7 +3,7 @@
     let openReplyForms = new Set();
     let replyTexts = new Map();
     let replyNames = new Map();
-    let replyCaptchaData = new Map(); // Храним капчу для каждой формы
+    let replyCaptchaData = new Map();
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
@@ -97,35 +97,14 @@
         return Math.max(...threads.map(t => t.id)) + 1;
     }
     
-    function fileToBase64(file) {
-        return new Promise((resolve) => {
-            if(!file) {
-                resolve(null);
-                return;
-            }
-            if(file.size > 5 * 1024 * 1024) {
-                alert('❌ Файл слишком большой! Максимум 5MB');
-                resolve(null);
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => {
-                alert('❌ Ошибка чтения файла');
-                resolve(null);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    async function addThread(subject, name, comment, fileData = null) {
+    async function addThread(subject, name, comment) {
         const newThread = {
             id: getNextId(),
             board: BOARD,
             subject: subject || 'Без темы',
             name: name || 'Аноним',
             comment: comment || '',
-            fileData: fileData || '',
+            fileData: '',
             timestamp: new Date().toISOString(),
             replies: [],
             pinned: false
@@ -138,13 +117,13 @@
         setTimeout(() => loadFromSheets(), 1500);
     }
     
-    async function addReply(threadId, name, comment, fileData = null) {
+    async function addReply(threadId, name, comment) {
         const thread = threads.find(t => t.id === parseInt(threadId));
         if(thread) {
             const reply = {
                 name: name || 'Аноним',
                 comment: comment,
-                fileData: fileData || '',
+                fileData: '',
                 timestamp: new Date().toISOString()
             };
             thread.replies.push(reply);
@@ -168,7 +147,6 @@
         }
     }
     
-    // Сохраняем состояние всех форм
     function saveFormStates() {
         openReplyForms.clear();
         replyTexts.clear();
@@ -196,7 +174,6 @@
         });
     }
     
-    // Восстанавливаем состояние форм
     function restoreFormStates() {
         openReplyForms.forEach(id => {
             const form = document.getElementById(`reply-form-${id}`);
@@ -211,7 +188,6 @@
                 if(textarea && replyTexts.has(id)) textarea.value = replyTexts.get(id);
                 if(nameInput && replyNames.has(id)) nameInput.value = replyNames.get(id);
                 
-                // Восстанавливаем капчу
                 if(captchaQ && replyCaptchaData.has(id)) {
                     const saved = replyCaptchaData.get(id);
                     captchaQ.textContent = saved.question;
@@ -260,10 +236,9 @@
                     <input type="text" id="replyName-${t.id}" placeholder="Имя (опционально)" style="width:100%; margin-bottom:5px; padding:5px;">
                     <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст ответа..." style="width:100%; margin-bottom:5px; padding:5px;"></textarea>
                     
-                    <div style="margin:8px 0;">
-                        <label for="replyFile-${t.id}" style="background:#eee; padding:4px 10px; border:1px solid #d9bfb7; border-radius:3px; cursor:pointer;">📎 Прикрепить файл</label>
-                        <input type="file" id="replyFile-${t.id}" accept="image/*" style="display:none;">
-                        <span id="replyFileName-${t.id}" style="margin-left:8px; font-size:11px;">Файл не выбран</span>
+                    <div style="margin:8px 0; opacity:0.5;">
+                        <label style="background:#eee; padding:4px 10px; border:1px solid #d9bfb7; border-radius:3px; cursor:not-allowed; pointer-events:none;">📎 Прикрепить файл (🚧 В будущем...)</label>
+                        <span style="margin-left:8px; font-size:11px; color:#888; font-style:italic;">🚧 В будущем...</span>
                     </div>
                     
                     <div style="margin:8px 0; display:flex; gap:8px; align-items:center;">
@@ -285,7 +260,6 @@
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
         
-        // Восстанавливаем формы после рендера
         setTimeout(() => restoreFormStates(), 50);
     }
     
@@ -300,7 +274,6 @@
             html += `<div style="background:#fff8f0; margin:5px 0; padding:6px; border-left:3px solid #d9bfb7;">
                 <strong style="color:#800;">${escape(rep.name || 'Аноним')}</strong> 
                 <span style="color:#789922; font-size:10px;">${dateStr}</span>
-                ${rep.fileData ? `<div style="margin-top:5px;"><img src="${rep.fileData}" style="max-width:100px; max-height:100px;"></div>` : ''}
                 <div style="margin-top:4px;">${escape(rep.comment)}</div>
             </div>`;
         }
@@ -308,23 +281,6 @@
     }
     
     function attachEvents() {
-        // Обработчики для файлов в ответах
-        document.querySelectorAll('[id^="replyFile-"]').forEach(input => {
-            const id = input.id.replace('replyFile-', '');
-            const newInput = input.cloneNode(true);
-            input.parentNode.replaceChild(newInput, input);
-            
-            newInput.addEventListener('change', function(e) {
-                const span = document.getElementById(`replyFileName-${id}`);
-                if(span && this.files && this.files[0]) {
-                    span.textContent = this.files[0].name;
-                } else if(span) {
-                    span.textContent = 'Файл не выбран';
-                }
-            });
-        });
-        
-        // Инициализация капчи для форм ответа (только если нет сохранённой)
         document.querySelectorAll('.reply-form').forEach(form => {
             const id = form.id.replace('reply-form-', '');
             const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
@@ -335,7 +291,6 @@
             }
         });
         
-        // Кнопки "Ответить"
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.preventDefault();
@@ -348,7 +303,6 @@
                     
                     if(!isVisible) {
                         openReplyForms.add(id);
-                        // Сохраняем текущий текст
                         const textarea = document.getElementById(`replyComment-${id}`);
                         const nameInput = document.getElementById(`replyName-${id}`);
                         if(textarea) replyTexts.set(id, textarea.value);
@@ -363,7 +317,6 @@
             };
         });
         
-        // Кнопки "Отмена"
         document.querySelectorAll('.cancel-reply').forEach(btn => {
             btn.onclick = () => {
                 const form = document.getElementById(`reply-form-${btn.dataset.id}`);
@@ -377,7 +330,6 @@
             };
         });
         
-        // Кнопки "Отправить ответ"
         document.querySelectorAll('.submit-reply').forEach(btn => {
             btn.onclick = async () => {
                 const id = btn.dataset.id;
@@ -395,7 +347,6 @@
                 
                 const nameInput = document.getElementById(`replyName-${id}`);
                 const commentInput = document.getElementById(`replyComment-${id}`);
-                const fileInputReply = document.getElementById(`replyFile-${id}`);
                 const name = nameInput ? nameInput.value.trim() : '';
                 const comment = commentInput ? commentInput.value.trim() : '';
                 
@@ -407,20 +358,10 @@
                 btn.disabled = true;
                 btn.textContent = '⏳...';
                 
-                let fileData = null;
-                if(fileInputReply && fileInputReply.files && fileInputReply.files[0]) {
-                    fileData = await fileToBase64(fileInputReply.files[0]);
-                }
-                
-                await addReply(id, name, comment, fileData);
+                await addReply(id, name, comment);
                 
                 if(nameInput) nameInput.value = '';
                 if(commentInput) commentInput.value = '';
-                if(fileInputReply) {
-                    fileInputReply.value = '';
-                    const span = document.getElementById(`replyFileName-${id}`);
-                    if(span) span.textContent = 'Файл не выбран';
-                }
                 
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) form.style.display = 'none';
@@ -440,23 +381,29 @@
         return s.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // Обработчик для файла при создании треда
+    // Отключаем файлы в форме создания треда
     const threadFileInput = document.getElementById('threadImage');
     if(threadFileInput) {
-        const newFileInput = threadFileInput.cloneNode(true);
-        threadFileInput.parentNode.replaceChild(newFileInput, threadFileInput);
-        
-        newFileInput.addEventListener('change', function() {
-            const fileNameSpan = document.getElementById('fileChosen');
-            if(fileNameSpan && this.files && this.files[0]) {
-                fileNameSpan.textContent = this.files[0].name;
-            } else if(fileNameSpan) {
-                fileNameSpan.textContent = 'Файл не выбран';
-            }
-        });
+        threadFileInput.disabled = true;
+        threadFileInput.style.display = 'none';
     }
     
-    // Обработчик создания треда
+    const fileLabel = document.querySelector('.file-label');
+    if(fileLabel) {
+        fileLabel.style.opacity = '0.5';
+        fileLabel.style.cursor = 'not-allowed';
+        fileLabel.style.pointerEvents = 'none';
+        fileLabel.title = 'Загрузка файлов временно недоступна';
+    }
+    
+    const fileChosen = document.getElementById('fileChosen');
+    if(fileChosen) {
+        fileChosen.textContent = '🚧 В будущем...';
+        fileChosen.style.color = '#888';
+        fileChosen.style.fontStyle = 'italic';
+    }
+    
+    // Обработчик создания треда (без файлов)
     const form = document.getElementById('newThreadForm');
     if(form) {
         form.onsubmit = async (e) => {
@@ -466,7 +413,6 @@
             const subjectEl = document.getElementById('threadSubject');
             const nameEl = document.getElementById('threadName');
             const commentEl = document.getElementById('threadComment');
-            const imageEl = document.getElementById('threadImage');
             
             const subject = subjectEl ? subjectEl.value.trim() : '';
             const name = nameEl ? nameEl.value.trim() : '';
@@ -482,28 +428,17 @@
             submitBtn.disabled = true;
             submitBtn.textContent = '⏳...';
             
-            let fileData = null;
-            if(imageEl && imageEl.files && imageEl.files[0]) {
-                fileData = await fileToBase64(imageEl.files[0]);
-            }
-            
-            await addThread(subject, name, comment, fileData);
+            await addThread(subject, name, comment);
             
             if(subjectEl) subjectEl.value = '';
             if(nameEl) nameEl.value = '';
             if(commentEl) commentEl.value = '';
-            if(imageEl) {
-                imageEl.value = '';
-                const fn = document.getElementById('fileChosen');
-                if(fn) fn.textContent = 'Файл не выбран';
-            }
             
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
         };
     }
     
-    // Обновление с сохранением состояния
     async function refreshWithState() {
         saveFormStates();
         await loadFromSheets();
