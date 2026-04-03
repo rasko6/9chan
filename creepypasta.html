@@ -1,96 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
 <style>
+  /* Общие настройки для стабильности */
   body {
-    background-color: #050000;
-    color: #8b0000;
-    font-family: 'Courier New', Courier, monospace;
-    overflow: hidden; /* Чтобы нельзя было убежать */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
+    background-color: #f8f9fa; /* Светлый приятный фон */
+    color: #212529;           /* Темно-серый текст */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
     margin: 0;
-    text-shadow: 2px 2px 5px #000, 0 0 20px #f00;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding-top: 50px;
+  }
+
+  /* Контейнер, который держит текст ровно по центру */
+  .content-wrapper {
+    max-width: 700px;
+    width: 90%;
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* Легкая тень для объема */
   }
 
   h1 {
-    font-size: 3rem;
-    text-transform: uppercase;
-    animation: glitch 0.2s infinite;
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    /* Убрали анимацию glitch — теперь текст стоит на месте */
   }
 
   p {
-    font-size: 1.5rem;
-    animation: shake 0.5s infinite;
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    /* Убрали анимацию shake — текст больше не трясется */
+    color: #444;
   }
 
-  /* Эффект помех и подергивания */
-  @keyframes glitch {
-    0% { transform: translate(0); text-shadow: 2px 2px #ff0000; }
-    25% { transform: translate(-5px, 5px); text-shadow: -2px -2px #550000; }
-    50% { transform: translate(5px, -5px); color: #660000; }
-    75% { transform: translate(-5px, -5px); }
-    100% { transform: translate(0); }
-  }
-
-  @keyframes shake {
-    0% { transform: skew(0.5deg); opacity: 1; }
-    50% { transform: skew(-0.5deg); opacity: 0.8; }
-    100% { transform: skew(0.5deg); opacity: 1; }
-  }
-
-  /* Кровавая виньетка по краям */
-  body::before {
-    content: "";
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(circle, transparent 40%, #200 100%);
-    pointer-events: none;
-  }
-    hr {
+  /* Обычная разделительная линия */
+  hr {
     border: none;
-    height: 4px;
-    background: linear-gradient(90deg, transparent, #ff0000, transparent);
-    box-shadow: 0 0 15px #f00, 0 0 5px #fff;
-    width: 80%;
-    margin: 20px auto;
-    position: relative;
-    animation: bleed 3s infinite ease-in-out;
+    border-top: 1px solid #ddd;
+    margin: 30px 0;
   }
 
-  /* Эффект пульсации и "стекания" */
-  @keyframes bleed {
-    0% { transform: scaleX(1); opacity: 0.3; filter: blur(1px); }
-    50% { transform: scaleX(1.1); opacity: 1; filter: blur(0px); }
-    100% { transform: scaleX(1); opacity: 0.3; filter: blur(1px); }
+  /* Подпись или акценты */
+  .admin-note {
+    font-style: italic;
+    color: #777;
+    font-size: 0.9rem;
   }
-
-  /* Добавим маленькую "каплю" под линию */
-  hr::after {
-    content: "▼";
-    position: absolute;
-    left: 50%;
-    top: 2px;
-    color: #8b0000;
-    font-size: 10px;
-    animation: drop 2s infinite;
-  }
-
-  @keyframes drop {
-    0% { transform: translateY(0); opacity: 0; }
-    50% { opacity: 1; }
-    100% { transform: translateY(50px); opacity: 0; }
-  }
-
 </style>
-
+</head>
 <body>
 
-<h1>SCARY PAGE</h1>
-<p>Добро пожаловать на страницу официальной крипипасты по 9-чан, созданной админом rasko6.</p>
+<div class="content-wrapper">
+  <h1>SCARY PAGE</h1>
+  
+  <p class="admin-note">Официальная крипипаста по 9-чан. Автор: rasko6.</p>
+  
   <hr>
-<p>Первая часть: Как Оно Началось</p>
+  
+  <p><strong>Первая часть: Как Оно Началось</strong></p>
+  
+  <p>
+    Здесь теперь располагается ваш текст. Он больше не двигается, не мерцает и легко читается. 
+    Шрифты стали системными, а фон — статичным, что характерно для обычных информационных страниц.
+  </p>
+</div>
+
 </body>
 </html>
