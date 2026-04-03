@@ -3,60 +3,34 @@
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycby3ZyuS0E2SEaitmPhX_n-4ImD26ZMI99atr66b2y5DeOqt85MVoPvfuqsWOAz6Pgk/exec';
     
-    function generateCaptcha() {
-        const n1 = Math.floor(Math.random() * 10) + 1;
-        const n2 = Math.floor(Math.random() * 10) + 1;
-        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-        let q, a;
-        if(op === '+') {
-            q = `${n1} + ${n2}`;
-            a = n1 + n2;
-        } else if(op === '-') {
-            q = `${n1} - ${n2}`;
-            a = n1 - n2;
-        } else {
-            q = `${n1} * ${n2}`;
-            a = n1 * n2;
-        }
-        return {question: q, answer: a.toString()};
-    }
-    
-    let currentCaptcha = generateCaptcha();
-    const captchaQ = document.getElementById('captchaQuestion');
-    if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
-    
-    function verifyCaptcha() {
-        const inputEl = document.getElementById('captchaAnswer');
-        if(!inputEl) return true;
-        if(inputEl.value.trim() !== currentCaptcha.answer) {
-            alert('❌ Неправильный ответ!');
-            currentCaptcha = generateCaptcha();
-            if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
-            inputEl.value = '';
-            return false;
-        }
-        currentCaptcha = generateCaptcha();
-        if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
-        inputEl.value = '';
-        return true;
-    }
-    
-    document.querySelectorAll('.mascot-placeholder').forEach(e => e.remove());
+    console.log('Script started');
+    console.log('API_URL:', API_URL);
     
     async function loadFromSheets() {
+        console.log('Loading from sheets...');
         try {
-            const res = await fetch(`${API_URL}?board=${BOARD}`);
+            const url = `${API_URL}?board=${BOARD}`;
+            console.log('Fetching:', url);
+            
+            const res = await fetch(url);
+            console.log('Response status:', res.status);
+            
             const allThreads = await res.json();
+            console.log('Received threads:', allThreads);
+            
             threads = allThreads.filter(t => t.board === BOARD);
+            console.log('Filtered threads:', threads);
+            
             render();
             updateSyncStatus('✅ Синхронизировано');
         } catch(e) {
             console.error('Load error:', e);
-            updateSyncStatus('⚠️ Ошибка загрузки', true);
+            updateSyncStatus('⚠️ Ошибка: ' + e.message, true);
         }
     }
     
     async function saveToSheets(data) {
+        console.log('Saving to sheets:', data);
         try {
             await fetch(API_URL, {
                 method: 'POST',
@@ -64,6 +38,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
             });
+            console.log('Save sent');
             return true;
         } catch(e) {
             console.error('Save error:', e);
@@ -71,70 +46,16 @@
         }
     }
     
-    function updateSyncStatus(text, isError) {
-        const el = document.getElementById('syncStatusText');
-        if(el) {
-            el.textContent = text;
-            el.style.color = isError ? '#f44336' : '#4caf50';
-        }
-    }
-    
-    function getNextId() {
-        if(threads.length === 0) return Date.now();
-        return Math.max(...threads.map(t => t.id)) + 1;
-    }
-    
-    async function addThread(subject, name, comment, fileData = null) {
-        const newThread = {
-            id: getNextId(),
-            board: BOARD,
-            subject: subject || 'Без темы',
-            name: name || 'Аноним',
-            comment: comment || '',
-            fileData: fileData || '',
-            timestamp: new Date().toISOString(),
-            replies: [],
-            pinned: false
-        };
-        
-        threads.unshift(newThread);
-        render();
-        
-        const saved = await saveToSheets(newThread);
-        if(saved) {
-            updateSyncStatus('✅ Тред создан', false);
-            setTimeout(() => loadFromSheets(), 1000);
-        } else {
-            updateSyncStatus('⚠️ Ошибка сохранения', true);
-        }
-    }
-    
-    async function addReply(threadId, name, comment) {
-        const thread = threads.find(t => t.id === parseInt(threadId));
-        if(thread) {
-            const reply = {
-                name: name || 'Аноним',
-                comment: comment,
-                timestamp: new Date().toISOString()
-            };
-            thread.replies.push(reply);
-            render();
-            
-            const saved = await saveToSheets(thread);
-            if(saved) {
-                updateSyncStatus('✅ Ответ отправлен', false);
-            } else {
-                updateSyncStatus('⚠️ Ошибка сохранения', true);
-            }
-        }
-    }
-    
     function render() {
+        console.log('Rendering threads, count:', threads.length);
         const c = document.getElementById('threadsContainer');
-        if(!c) return;
+        if(!c) {
+            console.error('threadsContainer not found!');
+            return;
+        }
         
         if(!threads.length) {
-            c.innerHTML = '<div class="loading-message">Нет тредов</div>';
+            c.innerHTML = '<div class="loading-message">Нет тредов. Создайте первый!</div>';
             updateStats();
             return;
         }
@@ -195,7 +116,7 @@
         });
         
         document.querySelectorAll('.submit-reply').forEach(btn => {
-            btn.onclick = () => {
+            btn.onclick = async () => {
                 if(!verifyCaptcha()) return;
                 const id = btn.dataset.id;
                 const nameInput = document.getElementById(`replyName-${id}`);
@@ -206,7 +127,20 @@
                     alert('Введите текст ответа');
                     return;
                 }
-                addReply(id, name, comment);
+                
+                const thread = threads.find(t => t.id === parseInt(id));
+                if(thread) {
+                    const reply = {
+                        name: name || 'Аноним',
+                        comment: comment,
+                        timestamp: new Date().toISOString()
+                    };
+                    thread.replies.push(reply);
+                    render();
+                    await saveToSheets(thread);
+                    updateSyncStatus('✅ Ответ отправлен', false);
+                }
+                
                 if(nameInput) nameInput.value = '';
                 if(commentInput) commentInput.value = '';
                 const f = document.getElementById(`reply-form-${id}`);
@@ -215,14 +149,55 @@
         });
     }
     
+    function updateSyncStatus(text, isError) {
+        const el = document.getElementById('syncStatusText');
+        if(el) {
+            el.textContent = text;
+            el.style.color = isError ? '#f44336' : '#4caf50';
+        }
+    }
+    
     function updateStats() {
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
-        const rc = document.getElementById('replyCount');
-        if(rc) {
-            const totalReplies = threads.reduce((sum, t) => sum + (t.replies?.length || 0), 0);
-            rc.innerText = totalReplies;
+    }
+    
+    function generateCaptcha() {
+        const n1 = Math.floor(Math.random() * 10) + 1;
+        const n2 = Math.floor(Math.random() * 10) + 1;
+        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+        let q, a;
+        if(op === '+') {
+            q = `${n1} + ${n2}`;
+            a = n1 + n2;
+        } else if(op === '-') {
+            q = `${n1} - ${n2}`;
+            a = n1 - n2;
+        } else {
+            q = `${n1} * ${n2}`;
+            a = n1 * n2;
         }
+        return {question: q, answer: a.toString()};
+    }
+    
+    let currentCaptcha = generateCaptcha();
+    const captchaQ = document.getElementById('captchaQuestion');
+    if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
+    
+    function verifyCaptcha() {
+        const inputEl = document.getElementById('captchaAnswer');
+        if(!inputEl) return true;
+        if(inputEl.value.trim() !== currentCaptcha.answer) {
+            alert('❌ Неправильный ответ!');
+            currentCaptcha = generateCaptcha();
+            if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
+            inputEl.value = '';
+            return false;
+        }
+        currentCaptcha = generateCaptcha();
+        if(captchaQ) captchaQ.textContent = currentCaptcha.question + ' = ?';
+        inputEl.value = '';
+        return true;
     }
     
     function escape(s) {
@@ -240,6 +215,29 @@
             callback(e.target.result);
         };
         reader.readAsDataURL(file);
+    }
+    
+    async function addThread(subject, name, comment, fileData = null) {
+        const newThread = {
+            id: Date.now(),
+            board: BOARD,
+            subject: subject || 'Без темы',
+            name: name || 'Аноним',
+            comment: comment || '',
+            fileData: fileData || '',
+            timestamp: new Date().toISOString(),
+            replies: [],
+            pinned: false
+        };
+        
+        threads.unshift(newThread);
+        render();
+        
+        const saved = await saveToSheets(newThread);
+        if(saved) {
+            updateSyncStatus('✅ Тред создан', false);
+            setTimeout(() => loadFromSheets(), 1000);
+        }
     }
     
     const form = document.getElementById('newThreadForm');
@@ -280,9 +278,8 @@
         };
     }
     
-    // Load threads immediately
-    loadFromSheets();
+    document.querySelectorAll('.mascot-placeholder').forEach(e => e.remove());
     
-    // Auto-refresh every 10 seconds
+    loadFromSheets();
     setInterval(loadFromSheets, 10000);
 })();
