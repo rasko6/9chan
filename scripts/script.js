@@ -280,6 +280,9 @@
         };
     }
     
+    // Load threads immediately
     loadFromSheets();
-    setInterval(loadFromSheets, 30000);
+    
+    // Auto-refresh every 10 seconds
+    setInterval(loadFromSheets, 10000);
 })();
