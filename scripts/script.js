@@ -1,6 +1,6 @@
 (function(){
     let threads = [];
-    let openReplyForms = new Set(); // Храним ID открытых форм
+    let openReplyForms = new Set();
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
@@ -148,7 +148,7 @@
         
         await saveToSheets(newThread);
         updateSyncStatus('✅ Тред создан', false);
-        setTimeout(() => loadFromSheets(), 1500);
+        setTimeout(() => refreshWithState(), 1500);
     }
     
     async function addReply(threadId, name, comment) {
@@ -164,12 +164,11 @@
             
             await saveToSheets(thread);
             updateSyncStatus('✅ Ответ отправлен', false);
-            setTimeout(() => loadFromSheets(), 1500);
+            setTimeout(() => refreshWithState(), 1500);
         }
     }
     
     function saveOpenForms() {
-        // Сохраняем ID тредов, у которых форма открыта
         openReplyForms.clear();
         document.querySelectorAll('.reply-form').forEach(form => {
             if(form.style.display === 'block') {
@@ -225,7 +224,7 @@
                 <div class="reply-form" id="reply-form-${t.id}" style="display:none; margin-top:10px; padding:10px; background:#f9f9f9; border:1px solid #d9bfb7;">
                     <input type="text" id="replyName-${t.id}" placeholder="Имя (опционально)" maxlength="30" style="width:100%; margin-bottom:5px; padding:5px;">
                     <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст ответа..." maxlength="500" style="width:100%; margin-bottom:5px; padding:5px;"></textarea>
-                    <div style="display:flex; gap:8px;">
+                    <div style="display:flex; gap:8px; margin-top:5px;">
                         <button class="submit-reply" data-id="${t.id}" style="background:#d4af37; border:none; padding:5px 12px; cursor:pointer;">✉️ Отправить</button>
                         <button class="cancel-reply" data-id="${t.id}" style="background:#ccc; border:none; padding:5px 12px; cursor:pointer;">❌ Отмена</button>
                     </div>
@@ -235,7 +234,7 @@
         c.innerHTML = html;
         attachEvents();
         updateStats();
-        restoreOpenForms(); // Восстанавливаем открытые формы
+        restoreOpenForms();
     }
     
     function renderReplies(r) {
@@ -261,7 +260,6 @@
     }
     
     function attachEvents() {
-        // Кнопки "Ответить"
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.preventDefault();
@@ -269,12 +267,10 @@
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
                     const isOpen = form.style.display === 'block';
-                    // Закрываем все формы
                     document.querySelectorAll('.reply-form').forEach(f => {
                         f.style.display = 'none';
                     });
                     openReplyForms.clear();
-                    // Если форма была закрыта - открываем
                     if(!isOpen) {
                         form.style.display = 'block';
                         openReplyForms.add(id);
@@ -283,7 +279,6 @@
             };
         });
         
-        // Кнопки "Отмена"
         document.querySelectorAll('.cancel-reply').forEach(btn => {
             btn.onclick = () => {
                 const form = document.getElementById(`reply-form-${btn.dataset.id}`);
@@ -294,7 +289,6 @@
             };
         });
         
-        // Кнопки "Отправить ответ"
         document.querySelectorAll('.submit-reply').forEach(btn => {
             btn.onclick = async () => {
                 if(!verifyCaptcha()) return;
@@ -409,7 +403,6 @@
         };
     }
     
-    // Функция обновления с сохранением состояния форм
     async function refreshWithState() {
         saveOpenForms();
         await loadFromSheets();
