@@ -83,20 +83,42 @@
             const res = await fetch(url);
             const text = await res.text();
             
-            const start = text.indexOf('{');
-            const end = text.lastIndexOf('}');
-            const jsonText = text.substring(start, end + 1);
+            // Method 1: Remove the Google wrapper
+            let jsonText = text;
+            
+            // Remove /*O_o*/ 
+            jsonText = jsonText.replace(/\/\*O_o\*\//g, '');
+            
+            // Remove google.visualization.Query.setResponse(
+            jsonText = jsonText.replace(/^google\.visualization\.Query\.setResponse\(/, '');
+            
+            // Remove trailing );
+            jsonText = jsonText.replace(/\);$/, '');
+            
+            // Now parse as JSON
             const json = JSON.parse(jsonText);
-            
             const rows = json.table.rows;
-            const remoteThreads = [];
             
+            const remoteThreads = [];
             for(let i = 0; i < rows.length; i++) {
                 const row = rows[i].c;
                 if(row && row[0] && row[0].v !== null && row[0].v !== undefined) {
                     let timestamp = new Date().toLocaleString();
                     if(row[6] && row[6].v) {
-                        timestamp = formatDate(row[6].v.toString());
+                        const dateMatch = row[6].v.toString().match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+                        if(dateMatch) {
+                            const date = new Date(
+                                parseInt(dateMatch[1]),
+                                parseInt(dateMatch[2]),
+                                parseInt(dateMatch[3]),
+                                parseInt(dateMatch[4]),
+                                parseInt(dateMatch[5]),
+                                parseInt(dateMatch[6])
+                            );
+                            timestamp = date.toLocaleString();
+                        } else {
+                            timestamp = row[6].v.toString();
+                        }
                     }
                     
                     let replies = [];
@@ -132,6 +154,7 @@
             }
         } catch(e) {
             console.error('Sync error:', e);
+            console.log('Raw response:', text.substring(0, 200));
             updateSyncStatus('⚠️ Офлайн', true);
             loadLocal();
         }
