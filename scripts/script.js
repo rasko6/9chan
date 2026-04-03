@@ -43,6 +43,17 @@
     
     document.querySelectorAll('.mascot-placeholder').forEach(e => e.remove());
     
+    // Отображение имени файла
+    const fileInput = document.getElementById('threadImage');
+    if(fileInput) {
+        fileInput.addEventListener('change', function() {
+            const fileName = document.getElementById('fileChosen');
+            if(fileName) {
+                fileName.textContent = this.files[0] ? this.files[0].name : 'Файл не выбран';
+            }
+        });
+    }
+    
     async function loadFromSheets() {
         try {
             const res = await fetch(`${API_URL}?board=${BOARD}`);
@@ -58,11 +69,23 @@
     
     async function saveToSheets(data) {
         try {
+            const saveData = {
+                id: data.id,
+                board: data.board,
+                subject: data.subject || '',
+                name: data.name || 'Аноним',
+                comment: data.comment || '',
+                fileData: data.fileData || '',
+                timestamp: data.timestamp || new Date().toISOString(),
+                replies: data.replies || [],
+                pinned: data.pinned || false
+            };
+            
             await fetch(API_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify(saveData)
             });
             return true;
         } catch(e) {
@@ -76,6 +99,11 @@
         if(el) {
             el.textContent = text;
             el.style.color = isError ? '#f44336' : '#4caf50';
+            setTimeout(() => {
+                if(el.textContent === text) {
+                    el.style.opacity = '0.7';
+                }
+            }, 2000);
         }
     }
     
@@ -85,11 +113,9 @@
     }
     
     async function addThread(subject, name, comment, fileData = null) {
-        console.log('Current BOARD value:', BOARD); // Debug
-        
         const newThread = {
             id: getNextId(),
-            board: BOARD,  // This should be 'b', 'a', 'g', etc.
+            board: BOARD,
             subject: subject || 'Без темы',
             name: name || 'Аноним',
             comment: comment || '',
@@ -99,14 +125,12 @@
             pinned: false
         };
         
-        console.log('Saving thread with board:', newThread.board); // Debug
-        
         threads.unshift(newThread);
         render();
         
         await saveToSheets(newThread);
         updateSyncStatus('✅ Тред создан', false);
-        setTimeout(() => loadFromSheets(), 1000);
+        setTimeout(() => loadFromSheets(), 1500);
     }
     
     async function addReply(threadId, name, comment) {
@@ -122,6 +146,7 @@
             
             await saveToSheets(thread);
             updateSyncStatus('✅ Ответ отправлен', false);
+            setTimeout(() => loadFromSheets(), 1500);
         }
     }
     
@@ -137,22 +162,35 @@
         
         let html = '';
         for(let t of threads) {
-            html += `<div class="thread-card">
+            let dateStr = 'Дата неизвестна';
+            try {
+                if(t.timestamp) {
+                    dateStr = new Date(t.timestamp).toLocaleString();
+                }
+            } catch(e) {
+                dateStr = t.timestamp || 'Дата неизвестна';
+            }
+            
+            html += `<div class="thread-card" data-thread-id="${t.id}">
                 <div class="thread-header">
                     <span class="thread-title">${escape(t.subject || 'Без темы')}</span>
                     <span class="thread-info">
-                        №${t.id} ${escape(t.name || 'Аноним')} ${new Date(t.timestamp).toLocaleString()}
+                        №${t.id} ${escape(t.name || 'Аноним')} ${dateStr}
                     </span>
                 </div>
-                ${t.fileData ? `<img class="thread-image" src="${t.fileData}">` : ''}
+                ${t.fileData ? `<div class="thread-image-container"><img class="thread-image" src="${t.fileData}" loading="lazy" style="max-width:100%; max-height:300px;"></div>` : ''}
                 <div class="thread-comment">${escape(t.comment).replace(/\n/g, '<br>')}</div>
-                <button class="reply-btn" data-id="${t.id}">Ответить</button>
-                <div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div>
-                <div class="reply-form" id="reply-form-${t.id}" style="display:none">
-                    <input type="text" id="replyName-${t.id}" placeholder="Имя" maxlength="30">
-                    <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст" maxlength="500"></textarea>
-                    <button class="submit-reply" data-id="${t.id}">Отправить</button>
-                    <button class="cancel-reply" data-id="${t.id}">Отмена</button>
+                <button class="reply-btn" data-id="${t.id}">💬 Ответить</button>
+                <div class="replies" id="replies-${t.id}">
+                    ${renderReplies(t.replies)}
+                </div>
+                <div class="reply-form" id="reply-form-${t.id}" style="display:none; margin-top:10px; padding:10px; background:#f9f9f9; border:1px solid #d9bfb7;">
+                    <input type="text" id="replyName-${t.id}" placeholder="Имя (опционально)" maxlength="30" style="width:100%; margin-bottom:5px; padding:5px;">
+                    <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст ответа..." maxlength="500" style="width:100%; margin-bottom:5px; padding:5px;"></textarea>
+                    <div style="display:flex; gap:8px;">
+                        <button class="submit-reply" data-id="${t.id}" style="background:#d4af37; border:none; padding:5px 12px; cursor:pointer;">✉️ Отправить</button>
+                        <button class="cancel-reply" data-id="${t.id}" style="background:#ccc; border:none; padding:5px 12px; cursor:pointer;">❌ Отмена</button>
+                    </div>
                 </div>
             </div>`;
         }
@@ -162,51 +200,76 @@
     }
     
     function renderReplies(r) {
-        if(!r || !r.length) return '<div style="color:#777;padding:5px;">💬 Нет ответов</div>';
-        let html = '';
+        if(!r || !r.length) return '<div style="color:#789922; padding:8px 0;">💬 Нет ответов. Будь первым!</div>';
+        let html = '<div style="margin-top:10px; border-top:1px solid #d9bfb7; padding-top:8px;">';
         for(let rep of r) {
-            html += `<div class="reply">
-                <strong>${escape(rep.name || 'Аноним')}</strong> 
-                <span style="color:#888;font-size:11px;">${new Date(rep.timestamp).toLocaleString()}</span>
-                <div>${escape(rep.comment)}</div>
+            let dateStr = 'Дата неизвестна';
+            try {
+                if(rep.timestamp) {
+                    dateStr = new Date(rep.timestamp).toLocaleString();
+                }
+            } catch(e) {
+                dateStr = rep.timestamp || 'Дата неизвестна';
+            }
+            html += `<div class="reply" style="background:#fff8f0; margin:5px 0; padding:6px; border-left:3px solid #d9bfb7;">
+                <strong style="color:#800;">${escape(rep.name || 'Аноним')}</strong> 
+                <span style="color:#789922; font-size:10px;">${dateStr}</span>
+                <div style="margin-top:4px;">${escape(rep.comment)}</div>
             </div>`;
         }
+        html += '</div>';
         return html;
     }
     
     function attachEvents() {
+        // Кнопки "Ответить"
         document.querySelectorAll('.reply-btn').forEach(btn => {
-            btn.onclick = () => {
+            btn.onclick = (e) => {
+                e.preventDefault();
                 const id = btn.dataset.id;
-                const f = document.getElementById(`reply-form-${id}`);
-                if(f) f.style.display = f.style.display === 'block' ? 'none' : 'block';
+                const form = document.getElementById(`reply-form-${id}`);
+                if(form) {
+                    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                }
             };
         });
         
+        // Кнопки "Отмена"
         document.querySelectorAll('.cancel-reply').forEach(btn => {
             btn.onclick = () => {
-                const f = document.getElementById(`reply-form-${btn.dataset.id}`);
-                if(f) f.style.display = 'none';
+                const form = document.getElementById(`reply-form-${btn.dataset.id}`);
+                if(form) form.style.display = 'none';
             };
         });
         
+        // Кнопки "Отправить ответ"
         document.querySelectorAll('.submit-reply').forEach(btn => {
-            btn.onclick = () => {
+            btn.onclick = async () => {
                 if(!verifyCaptcha()) return;
                 const id = btn.dataset.id;
                 const nameInput = document.getElementById(`replyName-${id}`);
                 const commentInput = document.getElementById(`replyComment-${id}`);
                 const name = nameInput ? nameInput.value.trim() : '';
                 const comment = commentInput ? commentInput.value.trim() : '';
+                
                 if(!comment) {
-                    alert('Введите текст ответа');
+                    alert('❌ Введите текст ответа!');
                     return;
                 }
-                addReply(id, name, comment);
+                
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = '⏳ Отправка...';
+                
+                await addReply(id, name, comment);
+                
                 if(nameInput) nameInput.value = '';
                 if(commentInput) commentInput.value = '';
-                const f = document.getElementById(`reply-form-${id}`);
-                if(f) f.style.display = 'none';
+                const form = document.getElementById(`reply-form-${id}`);
+                if(form) form.style.display = 'none';
+                
+                btn.disabled = false;
+                btn.textContent = originalText;
             };
         });
     }
@@ -214,11 +277,6 @@
     function updateStats() {
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
-        const rc = document.getElementById('replyCount');
-        if(rc) {
-            const totalReplies = threads.reduce((sum, t) => sum + (t.replies?.length || 0), 0);
-            rc.innerText = totalReplies;
-        }
     }
     
     function escape(s) {
@@ -231,16 +289,25 @@
             callback(null);
             return;
         }
+        if(file.size > 5 * 1024 * 1024) {
+            alert('❌ Файл слишком большой! Максимум 5MB');
+            callback(null);
+            return;
+        }
         const reader = new FileReader();
         reader.onload = function(e) {
             callback(e.target.result);
+        };
+        reader.onerror = function() {
+            alert('❌ Ошибка загрузки файла');
+            callback(null);
         };
         reader.readAsDataURL(file);
     }
     
     const form = document.getElementById('newThreadForm');
     if(form) {
-        form.onsubmit = (e) => {
+        form.onsubmit = async (e) => {
             e.preventDefault();
             if(!verifyCaptcha()) return;
             
@@ -254,28 +321,39 @@
             const comment = commentEl ? commentEl.value.trim() : '';
             
             if(!comment) {
-                alert('Введите текст треда');
+                alert('❌ Введите текст треда!');
                 return;
             }
             
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Создание...';
+            
             const file = imageEl && imageEl.files[0];
             if(file) {
-                handleImageUpload(file, (fileData) => {
-                    addThread(subject, name, comment, fileData);
+                handleImageUpload(file, async (fileData) => {
+                    await addThread(subject, name, comment, fileData);
                     if(subjectEl) subjectEl.value = '';
                     if(nameEl) nameEl.value = '';
                     if(commentEl) commentEl.value = '';
                     if(imageEl) imageEl.value = '';
+                    const fileNameSpan = document.getElementById('fileChosen');
+                    if(fileNameSpan) fileNameSpan.textContent = 'Файл не выбран';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
                 });
             } else {
-                addThread(subject, name, comment, null);
+                await addThread(subject, name, comment, null);
                 if(subjectEl) subjectEl.value = '';
                 if(nameEl) nameEl.value = '';
                 if(commentEl) commentEl.value = '';
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         };
     }
     
     loadFromSheets();
-    setInterval(loadFromSheets, 5000);
+    setInterval(loadFromSheets, 10000);
 })();
