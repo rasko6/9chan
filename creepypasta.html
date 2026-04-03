@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<style>
+  body {
+    background-color: #050000;
+    color: #8b0000;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden; /* Чтобы нельзя было убежать */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    text-shadow: 2px 2px 5px #000, 0 0 20px #f00;
+  }
+
+  h1 {
+    font-size: 3rem;
+    text-transform: uppercase;
+    animation: glitch 0.2s infinite;
+  }
+
+  p {
+    font-size: 1.5rem;
+    animation: shake 0.5s infinite;
+  }
+
+  /* Эффект помех и подергивания */
+  @keyframes glitch {
+    0% { transform: translate(0); text-shadow: 2px 2px #ff0000; }
+    25% { transform: translate(-5px, 5px); text-shadow: -2px -2px #550000; }
+    50% { transform: translate(5px, -5px); color: #660000; }
+    75% { transform: translate(-5px, -5px); }
+    100% { transform: translate(0); }
+  }
+
+  @keyframes shake {
+    0% { transform: skew(0.5deg); opacity: 1; }
+    50% { transform: skew(-0.5deg); opacity: 0.8; }
+    100% { transform: skew(0.5deg); opacity: 1; }
+  }
+
+  /* Кровавая виньетка по краям */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, transparent 40%, #200 100%);
+    pointer-events: none;
+  }
+</style>
+
+<body>
+
+<h1>test</h1>
+<p>test</p>
+
+</body>
+</html>
