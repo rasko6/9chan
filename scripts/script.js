@@ -46,11 +46,16 @@
     function formatDate(dateValue) {
         if(!dateValue) return new Date().toLocaleString();
         if(typeof dateValue === 'string') {
-            if(dateValue.startsWith('Date(')) {
-                const match = dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-                if(match) {
-                    return new Date(match[1], match[2], match[3], match[4], match[5], match[6]).toLocaleString();
-                }
+            const dateMatch = dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+            if(dateMatch) {
+                return new Date(
+                    parseInt(dateMatch[1]),
+                    parseInt(dateMatch[2]),
+                    parseInt(dateMatch[3]),
+                    parseInt(dateMatch[4]),
+                    parseInt(dateMatch[5]),
+                    parseInt(dateMatch[6])
+                ).toLocaleString();
             }
             return dateValue;
         }
@@ -58,7 +63,11 @@
     }
     
     function saveToLocal() {
-        localStorage.setItem(`9chan_${BOARD}`, JSON.stringify(threads));
+        try {
+            localStorage.setItem(`9chan_${BOARD}`, JSON.stringify(threads));
+        } catch(e) {
+            console.log('localStorage not available');
+        }
     }
     
     async function saveToSheets() {
@@ -89,7 +98,7 @@
                     method: 'POST',
                     mode: 'cors',
                     body: params
-                }).catch(e => console.log('Sheet save failed, using local only'));
+                }).catch(e => console.log('Sheet save failed'));
             }
             updateSyncStatus('✅ Сохранено');
         } catch(e) {
@@ -98,85 +107,90 @@
         }
     }
     
-   async function loadFromSheets() {
-    try {
-        const saved = localStorage.getItem(`9chan_${BOARD}`);
-        if(saved) {
-            threads = JSON.parse(saved);
-            render();
-            updateSyncStatus('📱 Локальный режим', true);
-        } else {
-            threads = [{
-                id: Date.now(),
-                board: BOARD,
-                subject: `Добро пожаловать на /${BOARD}/`,
-                name: 'Admin',
-                comment: 'Привет! Создавайте треды и отвечайте.',
-                fileData: null,
-                timestamp: new Date().toLocaleString(),
-                replies: []
-            }];
-            saveToLocal();
-            render();
-            updateSyncStatus('📱 Готов к работе', true);
-        }
-        
-        // Try to sync with Google Sheets
-        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
-        const res = await fetch(url);
-        const text = await res.text();
-        
-        // Fix: Remove the /*O_o*/ prefix and trailing ); if present
-        let cleanText = text;
-        if (cleanText.startsWith('/*O_o*/')) {
-            cleanText = cleanText.replace('/*O_o*/', '');
-        }
-        if (cleanText.startsWith('google.visualization.Query.setResponse(')) {
-            cleanText = cleanText.replace('google.visualization.Query.setResponse(', '');
-        }
-        if (cleanText.endsWith(');')) {
-            cleanText = cleanText.slice(0, -2);
-        }
-        
-        const json = JSON.parse(cleanText);
-        const rows = json.table.rows;
-        
-        const remoteThreads = [];
-        for(let i = 0; i < rows.length; i++) {
-            const row = rows[i].c;
-            if(row && row[0] && row[0].v) {
-                remoteThreads.push({
-                    id: parseInt(row[0].v),
-                    board: row[1]?.v || 'b',
-                    subject: row[2]?.v || '',
-                    name: row[3]?.v || 'Аноним',
-                    comment: row[4]?.v || '',
-                    fileData: row[5]?.v || null,
-                    timestamp: formatDate(row[6]?.v),
-                    replies: row[7]?.v ? JSON.parse(row[7].v) : []
-                });
+    async function loadFromSheets() {
+        try {
+            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=threads`;
+            const res = await fetch(url);
+            const text = await res.text();
+            
+            const match = text.match(/google\.visualization\.Query\.setResponse\((.+)\);?$/);
+            if (!match) {
+                throw new Error('Could not parse response');
             }
+            
+            const json = JSON.parse(match[1]);
+            const rows = json.table.rows;
+            
+            const remoteThreads = [];
+            for(let i = 0; i < rows.length; i++) {
+                const row = rows[i].c;
+                if(row && row[0] && row[0].v !== null) {
+                    let timestamp = new Date().toLocaleString();
+                    if(row[6] && row[6].v) {
+                        const dateMatch = row[6].v.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+                        if(dateMatch) {
+                            const date = new Date(
+                                parseInt(dateMatch[1]),
+                                parseInt(dateMatch[2]),
+                                parseInt(dateMatch[3]),
+                                parseInt(dateMatch[4]),
+                                parseInt(dateMatch[5]),
+                                parseInt(dateMatch[6])
+                            );
+                            timestamp = date.toLocaleString();
+                        }
+                    }
+                    
+                    remoteThreads.push({
+                        id: parseInt(row[0].v),
+                        board: row[1]?.v || 'b',
+                        subject: row[2]?.v || '',
+                        name: row[3]?.v || 'Аноним',
+                        comment: row[4]?.v || '',
+                        fileData: row[5]?.v || null,
+                        timestamp: timestamp,
+                        replies: row[7]?.v ? JSON.parse(row[7].v) : []
+                    });
+                }
+            }
+            
+            const remoteFiltered = remoteThreads.filter(t => t.board === BOARD);
+            if(remoteFiltered.length > 0) {
+                threads = remoteFiltered;
+                saveToLocal();
+                render();
+                updateSyncStatus('✅ Синхронизировано');
+            } else {
+                loadLocal();
+            }
+        } catch(e) {
+            console.error('Sync error:', e);
+            updateSyncStatus('⚠️ Офлайн', true);
+            loadLocal();
         }
-        
-        const remoteFiltered = remoteThreads.filter(t => t.board === BOARD);
-        if(remoteFiltered.length > 0) {
-            threads = remoteFiltered;
-            saveToLocal();
-            render();
-            updateSyncStatus('✅ Синхронизировано');
-        }
-    } catch(e) {
-        console.error('Sync error:', e);
-        updateSyncStatus('⚠️ Офлайн', true);
     }
-}
     
     function loadLocal() {
-        const saved = localStorage.getItem(`9chan_${BOARD}`);
-        if(saved && JSON.parse(saved).length > 0) {
-            threads = JSON.parse(saved);
-            render();
-        } else {
+        try {
+            const saved = localStorage.getItem(`9chan_${BOARD}`);
+            if(saved && JSON.parse(saved).length > 0) {
+                threads = JSON.parse(saved);
+                render();
+            } else {
+                threads = [{
+                    id: Date.now(),
+                    board: BOARD,
+                    subject: `Добро пожаловать на /${BOARD}/`,
+                    name: 'Admin',
+                    comment: 'Привет! Создавайте треды и отвечайте.',
+                    fileData: null,
+                    timestamp: new Date().toLocaleString(),
+                    replies: []
+                }];
+                saveToLocal();
+                render();
+            }
+        } catch(e) {
             threads = [{
                 id: Date.now(),
                 board: BOARD,
@@ -187,7 +201,6 @@
                 timestamp: new Date().toLocaleString(),
                 replies: []
             }];
-            saveToLocal();
             render();
         }
     }
