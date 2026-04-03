@@ -3,11 +3,12 @@
     let openReplyForms = new Set();
     let replyTexts = new Map();
     let replyNames = new Map();
-    let replyFileNames = new Map();
+    let replyFileData = new Map(); // Храним base64 файлов
+    let replyCaptchaAnswers = new Map(); // Храним правильные ответы капчи
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
-    // Капча
+    // Капча для создания треда
     let currentCaptcha = null;
     let captchaQuestionElement = null;
     let captchaAnswerElement = null;
@@ -60,6 +61,25 @@
         captchaQuestionElement = document.getElementById('captchaQuestion');
         captchaAnswerElement = document.getElementById('captchaAnswer');
         resetCaptcha();
+    }
+    
+    // Функция для генерации капчи ответа
+    function generateReplyCaptcha() {
+        const n1 = Math.floor(Math.random() * 10) + 1;
+        const n2 = Math.floor(Math.random() * 10) + 1;
+        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+        let q, a;
+        if(op === '+') {
+            q = `${n1} + ${n2}`;
+            a = n1 + n2;
+        } else if(op === '-') {
+            q = `${n1} - ${n2}`;
+            a = n1 - n2;
+        } else {
+            q = `${n1} * ${n2}`;
+            a = n1 * n2;
+        }
+        return {question: q, answer: a.toString()};
     }
     
     async function loadFromSheets() {
@@ -135,7 +155,7 @@
         render();
         await saveToSheets(newThread);
         updateSyncStatus('✅ Тред создан', false);
-        setTimeout(() => refreshWithState(), 1500);
+        setTimeout(() => loadFromSheets(), 1500);
     }
     
     async function addReply(threadId, name, comment, fileData = null) {
@@ -151,7 +171,7 @@
             render();
             await saveToSheets(thread);
             updateSyncStatus('✅ Ответ отправлен', false);
-            setTimeout(() => refreshWithState(), 1500);
+            setTimeout(() => loadFromSheets(), 1500);
         }
     }
     
@@ -168,11 +188,13 @@
         }
     }
     
-    function saveOpenForms() {
+    // Сохраняем состояние всех форм
+    function saveAllFormStates() {
         openReplyForms.clear();
         replyTexts.clear();
         replyNames.clear();
-        replyFileNames.clear();
+        replyFileData.clear();
+        replyCaptchaAnswers.clear();
         
         document.querySelectorAll('.reply-form').forEach(form => {
             if(form.style.display === 'block') {
@@ -181,18 +203,31 @@
                 
                 const textarea = document.getElementById(`replyComment-${id}`);
                 const nameInput = document.getElementById(`replyName-${id}`);
-                const fileSpan = document.getElementById(`replyFileName-${id}`);
+                const fileInput = document.getElementById(`replyFile-${id}`);
+                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
                 
                 if(textarea) replyTexts.set(id, textarea.value);
                 if(nameInput) replyNames.set(id, nameInput.value);
-                if(fileSpan && fileSpan.textContent !== 'Файл не выбран') {
-                    replyFileNames.set(id, fileSpan.textContent);
+                if(fileInput && fileInput.files && fileInput.files[0]) {
+                    // Сохраняем файл как base64
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        replyFileData.set(id, e.target.result);
+                    };
+                    reader.readAsDataURL(fileInput.files[0]);
+                }
+                if(captchaQ && captchaQ.dataset.answer) {
+                    replyCaptchaAnswers.set(id, {
+                        question: captchaQ.textContent,
+                        answer: captchaQ.dataset.answer
+                    });
                 }
             }
         });
     }
     
-    function restoreOpenForms() {
+    // Восстанавливаем состояние форм
+    function restoreAllFormStates() {
         openReplyForms.forEach(id => {
             const form = document.getElementById(`reply-form-${id}`);
             if(form) {
@@ -201,30 +236,30 @@
                 const textarea = document.getElementById(`replyComment-${id}`);
                 const nameInput = document.getElementById(`replyName-${id}`);
                 const fileSpan = document.getElementById(`replyFileName-${id}`);
+                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
+                const captchaA = document.getElementById(`replyCaptchaA-${id}`);
                 
                 if(textarea && replyTexts.has(id)) textarea.value = replyTexts.get(id);
                 if(nameInput && replyNames.has(id)) nameInput.value = replyNames.get(id);
-                if(fileSpan && replyFileNames.has(id)) fileSpan.textContent = replyFileNames.get(id);
                 
-                // Обновляем капчу
-                const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
-                if(captchaQ) {
-                    const n1 = Math.floor(Math.random() * 10) + 1;
-                    const n2 = Math.floor(Math.random() * 10) + 1;
-                    const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-                    let q, a;
-                    if(op === '+') {
-                        q = `${n1} + ${n2}`;
-                        a = n1 + n2;
-                    } else if(op === '-') {
-                        q = `${n1} - ${n2}`;
-                        a = n1 - n2;
-                    } else {
-                        q = `${n1} * ${n2}`;
-                        a = n1 * n2;
-                    }
-                    captchaQ.textContent = q + ' = ?';
-                    captchaQ.dataset.answer = a;
+                // Восстанавливаем капчу
+                if(captchaQ && replyCaptchaAnswers.has(id)) {
+                    const saved = replyCaptchaAnswers.get(id);
+                    captchaQ.textContent = saved.question;
+                    captchaQ.dataset.answer = saved.answer;
+                    if(captchaA) captchaA.value = '';
+                } else if(captchaQ) {
+                    const newCaptcha = generateReplyCaptcha();
+                    captchaQ.textContent = newCaptcha.question + ' = ?';
+                    captchaQ.dataset.answer = newCaptcha.answer;
+                    if(captchaA) captchaA.value = '';
+                }
+                
+                // Восстанавливаем имя файла если есть
+                if(fileSpan && replyFileData.has(id)) {
+                    fileSpan.textContent = 'Файл выбран';
+                } else if(fileSpan) {
+                    fileSpan.textContent = 'Файл не выбран';
                 }
             }
         });
@@ -288,7 +323,8 @@
         const sc = document.getElementById('threadCount');
         if(sc) sc.innerText = threads.length;
         
-        restoreOpenForms();
+        // Восстанавливаем открытые формы после рендера
+        setTimeout(() => restoreAllFormStates(), 50);
     }
     
     function renderReplies(r) {
@@ -310,11 +346,9 @@
     }
     
     function attachEvents() {
-        // ==== ОБРАБОТЧИКИ ДЛЯ ФАЙЛОВ В ОТВЕТАХ ====
+        // Обработчики для файлов в ответах
         document.querySelectorAll('[id^="replyFile-"]').forEach(input => {
             const id = input.id.replace('replyFile-', '');
-            
-            // Убираем старые обработчики
             const newInput = input.cloneNode(true);
             input.parentNode.replaceChild(newInput, input);
             
@@ -328,31 +362,18 @@
             });
         });
         
-        // ==== ИНИЦИАЛИЗАЦИЯ КАПЧИ ====
+        // Инициализация капчи для форм ответа
         document.querySelectorAll('.reply-form').forEach(form => {
             const id = form.id.replace('reply-form-', '');
             const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
             if(captchaQ && !captchaQ.dataset.answer) {
-                const n1 = Math.floor(Math.random() * 10) + 1;
-                const n2 = Math.floor(Math.random() * 10) + 1;
-                const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-                let q, a;
-                if(op === '+') {
-                    q = `${n1} + ${n2}`;
-                    a = n1 + n2;
-                } else if(op === '-') {
-                    q = `${n1} - ${n2}`;
-                    a = n1 - n2;
-                } else {
-                    q = `${n1} * ${n2}`;
-                    a = n1 * n2;
-                }
-                captchaQ.textContent = q + ' = ?';
-                captchaQ.dataset.answer = a;
+                const newCaptcha = generateReplyCaptcha();
+                captchaQ.textContent = newCaptcha.question + ' = ?';
+                captchaQ.dataset.answer = newCaptcha.answer;
             }
         });
         
-        // ==== КНОПКИ "ОТВЕТИТЬ" ====
+        // Кнопки "Ответить"
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.onclick = (e) => {
                 e.preventDefault();
@@ -364,33 +385,23 @@
                     form.style.display = isVisible ? 'none' : 'block';
                     
                     if(!isVisible) {
+                        openReplyForms.add(id);
                         const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
                         if(captchaQ) {
-                            const n1 = Math.floor(Math.random() * 10) + 1;
-                            const n2 = Math.floor(Math.random() * 10) + 1;
-                            const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-                            let q, a;
-                            if(op === '+') {
-                                q = `${n1} + ${n2}`;
-                                a = n1 + n2;
-                            } else if(op === '-') {
-                                q = `${n1} - ${n2}`;
-                                a = n1 - n2;
-                            } else {
-                                q = `${n1} * ${n2}`;
-                                a = n1 * n2;
-                            }
-                            captchaQ.textContent = q + ' = ?';
-                            captchaQ.dataset.answer = a;
+                            const newCaptcha = generateReplyCaptcha();
+                            captchaQ.textContent = newCaptcha.question + ' = ?';
+                            captchaQ.dataset.answer = newCaptcha.answer;
                             const captchaA = document.getElementById(`replyCaptchaA-${id}`);
                             if(captchaA) captchaA.value = '';
                         }
+                    } else {
+                        openReplyForms.delete(id);
                     }
                 }
             };
         });
         
-        // ==== КНОПКИ "ОТМЕНА" ====
+        // Кнопки "Отмена"
         document.querySelectorAll('.cancel-reply').forEach(btn => {
             btn.onclick = () => {
                 const form = document.getElementById(`reply-form-${btn.dataset.id}`);
@@ -401,12 +412,11 @@
             };
         });
         
-        // ==== КНОПКИ "ОТПРАВИТЬ ОТВЕТ" ====
+        // Кнопки "Отправить ответ"
         document.querySelectorAll('.submit-reply').forEach(btn => {
             btn.onclick = async () => {
                 const id = btn.dataset.id;
                 
-                // Проверка капчи
                 const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
                 const captchaA = document.getElementById(`replyCaptchaA-${id}`);
                 if(captchaA && captchaQ) {
@@ -414,22 +424,9 @@
                     const correctAnswer = captchaQ.dataset.answer;
                     if(userAnswer !== correctAnswer) {
                         alert('❌ Неправильный ответ капчи!');
-                        const n1 = Math.floor(Math.random() * 10) + 1;
-                        const n2 = Math.floor(Math.random() * 10) + 1;
-                        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-                        let q, a;
-                        if(op === '+') {
-                            q = `${n1} + ${n2}`;
-                            a = n1 + n2;
-                        } else if(op === '-') {
-                            q = `${n1} - ${n2}`;
-                            a = n1 - n2;
-                        } else {
-                            q = `${n1} * ${n2}`;
-                            a = n1 * n2;
-                        }
-                        captchaQ.textContent = q + ' = ?';
-                        captchaQ.dataset.answer = a;
+                        const newCaptcha = generateReplyCaptcha();
+                        captchaQ.textContent = newCaptcha.question + ' = ?';
+                        captchaQ.dataset.answer = newCaptcha.answer;
                         captchaA.value = '';
                         return;
                     }
@@ -479,7 +476,7 @@
         return s.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // ==== ОБРАБОТЧИК ДЛЯ ФАЙЛА ПРИ СОЗДАНИИ ТРЕДА ====
+    // Обработчик для файла при создании треда
     const threadFileInput = document.getElementById('threadImage');
     if(threadFileInput) {
         const newFileInput = threadFileInput.cloneNode(true);
@@ -495,7 +492,7 @@
         });
     }
     
-    // ==== ОБРАБОТЧИК СОЗДАНИЯ ТРЕДА ====
+    // Обработчик создания треда
     const form = document.getElementById('newThreadForm');
     if(form) {
         form.onsubmit = async (e) => {
@@ -542,8 +539,9 @@
         };
     }
     
+    // Обновление с сохранением состояния
     async function refreshWithState() {
-        saveOpenForms();
+        saveAllFormStates();
         await loadFromSheets();
     }
     
