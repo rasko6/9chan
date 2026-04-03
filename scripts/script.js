@@ -3,7 +3,7 @@
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
-    // Капча для создания треда
+    // Капча
     let currentCaptcha = null;
     let captchaQuestionElement = null;
     let captchaAnswerElement = null;
@@ -58,13 +58,15 @@
         resetCaptcha();
     }
     
-    // Отображение имени файла
+    // Обработчик файла
     const fileInput = document.getElementById('threadImage');
     if(fileInput) {
         fileInput.addEventListener('change', function() {
             const fileName = document.getElementById('fileChosen');
-            if(fileName) {
-                fileName.textContent = this.files[0] ? this.files[0].name : 'Файл не выбран';
+            if(fileName && this.files[0]) {
+                fileName.textContent = this.files[0].name;
+            } else if(fileName) {
+                fileName.textContent = 'Файл не выбран';
             }
         });
     }
@@ -104,25 +106,26 @@
         return Math.max(...threads.map(t => t.id)) + 1;
     }
     
-    function handleImageUpload(file, callback) {
-        if(!file) {
-            callback(null);
-            return;
-        }
-        if(file.size > 5 * 1024 * 1024) {
-            alert('❌ Файл слишком большой! Максимум 5MB');
-            callback(null);
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            callback(e.target.result);
-        };
-        reader.onerror = function() {
-            alert('❌ Ошибка загрузки файла');
-            callback(null);
-        };
-        reader.readAsDataURL(file);
+    // Конвертация файла в base64
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            if(!file) {
+                resolve(null);
+                return;
+            }
+            if(file.size > 5 * 1024 * 1024) {
+                alert('❌ Файл слишком большой! Максимум 5MB');
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => {
+                alert('❌ Ошибка чтения файла');
+                resolve(null);
+            };
+            reader.readAsDataURL(file);
+        });
     }
     
     async function addThread(subject, name, comment, fileData = null) {
@@ -141,7 +144,8 @@
         threads.unshift(newThread);
         render();
         await saveToSheets(newThread);
-        setTimeout(() => loadFromSheets(), 1000);
+        updateSyncStatus('✅ Тред создан', false);
+        setTimeout(() => loadFromSheets(), 1500);
     }
     
     async function addReply(threadId, name, comment, fileData = null) {
@@ -156,7 +160,21 @@
             thread.replies.push(reply);
             render();
             await saveToSheets(thread);
-            setTimeout(() => loadFromSheets(), 1000);
+            updateSyncStatus('✅ Ответ отправлен', false);
+            setTimeout(() => loadFromSheets(), 1500);
+        }
+    }
+    
+    function updateSyncStatus(text, isError) {
+        const el = document.getElementById('syncStatusText');
+        if(el) {
+            el.textContent = text;
+            el.style.color = isError ? '#f44336' : '#4caf50';
+            setTimeout(() => {
+                if(el.textContent === text) {
+                    el.style.opacity = '0.7';
+                }
+            }, 2000);
         }
     }
     
@@ -193,14 +211,12 @@
                     <input type="text" id="replyName-${t.id}" placeholder="Имя (опционально)" style="width:100%; margin-bottom:5px; padding:5px;">
                     <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст ответа..." style="width:100%; margin-bottom:5px; padding:5px;"></textarea>
                     
-                    <!-- Прикрепление файла -->
                     <div style="margin:8px 0;">
                         <label for="replyFile-${t.id}" style="background:#eee; padding:4px 10px; border:1px solid #d9bfb7; border-radius:3px; cursor:pointer;">📎 Прикрепить файл</label>
                         <input type="file" id="replyFile-${t.id}" accept="image/*" style="display:none;">
                         <span id="replyFileName-${t.id}" style="margin-left:8px; font-size:11px;">Файл не выбран</span>
                     </div>
                     
-                    <!-- Капча для ответа -->
                     <div style="margin:8px 0; display:flex; gap:8px; align-items:center;">
                         <span id="replyCaptchaQ-${t.id}" style="background:#eee; padding:4px 8px;">загрузка...</span>
                         <input type="text" id="replyCaptchaA-${t.id}" placeholder="Ответ" style="padding:4px; width:80px;">
@@ -215,7 +231,6 @@
         }
         c.innerHTML = html;
         
-        // Привязываем события
         attachEvents();
         
         const sc = document.getElementById('threadCount');
@@ -241,7 +256,7 @@
     }
     
     function attachEvents() {
-        // Генерация капчи для каждой формы
+        // Инициализация капчи для форм ответа
         document.querySelectorAll('.reply-form').forEach(form => {
             const id = form.id.replace('reply-form-', '');
             const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
@@ -265,12 +280,16 @@
             }
         });
         
-        // Показ имени файла
+        // Отображение имени файла для ответов
         document.querySelectorAll('[id^="replyFile-"]').forEach(input => {
             const id = input.id.replace('replyFile-', '');
             input.addEventListener('change', function() {
                 const span = document.getElementById(`replyFileName-${id}`);
-                if(span) span.textContent = this.files[0] ? this.files[0].name : 'Файл не выбран';
+                if(span && this.files[0]) {
+                    span.textContent = this.files[0].name;
+                } else if(span) {
+                    span.textContent = 'Файл не выбран';
+                }
             });
         });
         
@@ -281,28 +300,33 @@
                 const id = btn.dataset.id;
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
-                    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                    const isVisible = form.style.display === 'block';
+                    document.querySelectorAll('.reply-form').forEach(f => f.style.display = 'none');
+                    form.style.display = isVisible ? 'none' : 'block';
+                    
                     // Обновляем капчу при открытии
-                    const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
-                    if(captchaQ && form.style.display === 'block') {
-                        const n1 = Math.floor(Math.random() * 10) + 1;
-                        const n2 = Math.floor(Math.random() * 10) + 1;
-                        const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
-                        let q, a;
-                        if(op === '+') {
-                            q = `${n1} + ${n2}`;
-                            a = n1 + n2;
-                        } else if(op === '-') {
-                            q = `${n1} - ${n2}`;
-                            a = n1 - n2;
-                        } else {
-                            q = `${n1} * ${n2}`;
-                            a = n1 * n2;
+                    if(!isVisible) {
+                        const captchaQ = document.getElementById(`replyCaptchaQ-${id}`);
+                        if(captchaQ) {
+                            const n1 = Math.floor(Math.random() * 10) + 1;
+                            const n2 = Math.floor(Math.random() * 10) + 1;
+                            const op = ['+', '-', '*'][Math.floor(Math.random() * 3)];
+                            let q, a;
+                            if(op === '+') {
+                                q = `${n1} + ${n2}`;
+                                a = n1 + n2;
+                            } else if(op === '-') {
+                                q = `${n1} - ${n2}`;
+                                a = n1 - n2;
+                            } else {
+                                q = `${n1} * ${n2}`;
+                                a = n1 * n2;
+                            }
+                            captchaQ.textContent = q + ' = ?';
+                            captchaQ.dataset.answer = a;
+                            const captchaA = document.getElementById(`replyCaptchaA-${id}`);
+                            if(captchaA) captchaA.value = '';
                         }
-                        captchaQ.textContent = q + ' = ?';
-                        captchaQ.dataset.answer = a;
-                        const captchaA = document.getElementById(`replyCaptchaA-${id}`);
-                        if(captchaA) captchaA.value = '';
                     }
                 }
             };
@@ -316,9 +340,9 @@
             };
         });
         
-        // Кнопки "Отправить"
+        // Кнопки "Отправить ответ"
         document.querySelectorAll('.submit-reply').forEach(btn => {
-            btn.onclick = () => {
+            btn.onclick = async () => {
                 const id = btn.dataset.id;
                 
                 // Проверка капчи
@@ -362,33 +386,53 @@
                     return;
                 }
                 
-                const originalText = btn.textContent;
                 btn.disabled = true;
                 btn.textContent = '⏳...';
                 
+                // Конвертируем файл в base64
+                let fileData = null;
                 if(fileInputReply && fileInputReply.files[0]) {
-                    handleImageUpload(fileInputReply.files[0], async (fileData) => {
-                        await addReply(id, name, comment, fileData);
-                        if(nameInput) nameInput.value = '';
-                        if(commentInput) commentInput.value = '';
-                        fileInputReply.value = '';
-                        const span = document.getElementById(`replyFileName-${id}`);
-                        if(span) span.textContent = 'Файл не выбран';
-                        const form = document.getElementById(`reply-form-${id}`);
-                        if(form) form.style.display = 'none';
-                        btn.disabled = false;
-                        btn.textContent = originalText;
-                    });
-                } else {
-                    addReply(id, name, comment, null);
-                    if(nameInput) nameInput.value = '';
-                    if(commentInput) commentInput.value = '';
-                    const form = document.getElementById(`reply-form-${id}`);
-                    if(form) form.style.display = 'none';
-                    btn.disabled = false;
-                    btn.textContent = originalText;
+                    fileData = await fileToBase64(fileInputReply.files[0]);
                 }
+                
+                await addReply(id, name, comment, fileData);
+                
+                // Очищаем форму
+                if(nameInput) nameInput.value = '';
+                if(commentInput) commentInput.value = '';
+                if(fileInputReply) {
+                    fileInputReply.value = '';
+                    const span = document.getElementById(`replyFileName-${id}`);
+                    if(span) span.textContent = 'Файл не выбран';
+                }
+                
+                const form = document.getElementById(`reply-form-${id}`);
+                if(form) form.style.display = 'none';
+                
+                btn.disabled = false;
+                btn.textContent = '✉️ Отправить';
             };
+        });
+    }
+    
+    async function fileToBase64(file) {
+        return new Promise((resolve) => {
+            if(!file) {
+                resolve(null);
+                return;
+            }
+            if(file.size > 5 * 1024 * 1024) {
+                alert('❌ Файл слишком большой! Максимум 5MB');
+                resolve(null);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => {
+                alert('❌ Ошибка чтения файла');
+                resolve(null);
+            };
+            reader.readAsDataURL(file);
         });
     }
     
@@ -397,9 +441,10 @@
         return s.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
+    // Обработчик создания треда
     const form = document.getElementById('newThreadForm');
     if(form) {
-        form.onsubmit = (e) => {
+        form.onsubmit = async (e) => {
             e.preventDefault();
             if(!verifyCaptcha()) return;
             
@@ -422,27 +467,24 @@
             submitBtn.disabled = true;
             submitBtn.textContent = '⏳...';
             
-            const file = imageEl && imageEl.files[0];
-            if(file) {
-                handleImageUpload(file, async (fileData) => {
-                    await addThread(subject, name, comment, fileData);
-                    if(subjectEl) subjectEl.value = '';
-                    if(nameEl) nameEl.value = '';
-                    if(commentEl) commentEl.value = '';
-                    if(imageEl) imageEl.value = '';
-                    const fn = document.getElementById('fileChosen');
-                    if(fn) fn.textContent = 'Файл не выбран';
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalText;
-                });
-            } else {
-                addThread(subject, name, comment, null);
-                if(subjectEl) subjectEl.value = '';
-                if(nameEl) nameEl.value = '';
-                if(commentEl) commentEl.value = '';
-                submitBtn.disabled = false;
-                submitBtn.textContent = originalText;
+            let fileData = null;
+            if(imageEl && imageEl.files[0]) {
+                fileData = await fileToBase64(imageEl.files[0]);
             }
+            
+            await addThread(subject, name, comment, fileData);
+            
+            if(subjectEl) subjectEl.value = '';
+            if(nameEl) nameEl.value = '';
+            if(commentEl) commentEl.value = '';
+            if(imageEl) {
+                imageEl.value = '';
+                const fn = document.getElementById('fileChosen');
+                if(fn) fn.textContent = 'Файл не выбран';
+            }
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         };
     }
     
