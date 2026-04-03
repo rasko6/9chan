@@ -1,6 +1,8 @@
 (function(){
     let threads = [];
     let openReplyForms = new Set();
+    let replyTexts = new Map(); // Сохраняем текст ответов
+    let replyNames = new Map(); // Сохраняем имена
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
@@ -169,11 +171,20 @@
     }
     
     function saveOpenForms() {
+        // Сохраняем ID открытых форм и текст в них
         openReplyForms.clear();
+        replyTexts.clear();
+        replyNames.clear();
+        
         document.querySelectorAll('.reply-form').forEach(form => {
             if(form.style.display === 'block') {
                 const id = form.id.replace('reply-form-', '');
                 openReplyForms.add(id);
+                
+                const textarea = document.getElementById(`replyComment-${id}`);
+                const nameInput = document.getElementById(`replyName-${id}`);
+                if(textarea) replyTexts.set(id, textarea.value);
+                if(nameInput) replyNames.set(id, nameInput.value);
             }
         });
     }
@@ -183,6 +194,11 @@
             const form = document.getElementById(`reply-form-${id}`);
             if(form) {
                 form.style.display = 'block';
+                
+                const textarea = document.getElementById(`replyComment-${id}`);
+                const nameInput = document.getElementById(`replyName-${id}`);
+                if(textarea && replyTexts.has(id)) textarea.value = replyTexts.get(id);
+                if(nameInput && replyNames.has(id)) nameInput.value = replyNames.get(id);
             }
         });
     }
@@ -197,8 +213,15 @@
             return;
         }
         
+        // Сортируем треды: сначала закреплённые, потом по дате
+        const sortedThreads = [...threads].sort((a, b) => {
+            if(a.pinned && !b.pinned) return -1;
+            if(!a.pinned && b.pinned) return 1;
+            return new Date(b.timestamp) - new Date(a.timestamp);
+        });
+        
         let html = '';
-        for(let t of threads) {
+        for(let t of sortedThreads) {
             let dateStr = 'Дата неизвестна';
             try {
                 if(t.timestamp) {
@@ -208,9 +231,11 @@
                 dateStr = t.timestamp || 'Дата неизвестна';
             }
             
-            html += `<div class="thread-card" data-thread-id="${t.id}">
+            const pinnedIcon = t.pinned ? '📌 ' : '';
+            
+            html += `<div class="thread-card" data-thread-id="${t.id}" style="${t.pinned ? 'border-left: 4px solid #ff9800;' : ''}">
                 <div class="thread-header">
-                    <span class="thread-title">${escape(t.subject || 'Без темы')}</span>
+                    <span class="thread-title">${pinnedIcon}${escape(t.subject || 'Без темы')}</span>
                     <span class="thread-info">
                         №${t.id} ${escape(t.name || 'Аноним')} ${dateStr}
                     </span>
@@ -267,13 +292,28 @@
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
                     const isOpen = form.style.display === 'block';
+                    // Закрываем все формы
                     document.querySelectorAll('.reply-form').forEach(f => {
+                        if(f.style.display === 'block') {
+                            const fid = f.id.replace('reply-form-', '');
+                            // Сохраняем текст перед закрытием
+                            const textarea = document.getElementById(`replyComment-${fid}`);
+                            const nameInput = document.getElementById(`replyName-${fid}`);
+                            if(textarea) replyTexts.set(fid, textarea.value);
+                            if(nameInput) replyNames.set(fid, nameInput.value);
+                        }
                         f.style.display = 'none';
                     });
                     openReplyForms.clear();
+                    
                     if(!isOpen) {
                         form.style.display = 'block';
                         openReplyForms.add(id);
+                        // Восстанавливаем сохранённый текст
+                        const textarea = document.getElementById(`replyComment-${id}`);
+                        const nameInput = document.getElementById(`replyName-${id}`);
+                        if(textarea && replyTexts.has(id)) textarea.value = replyTexts.get(id);
+                        if(nameInput && replyNames.has(id)) nameInput.value = replyNames.get(id);
                     }
                 }
             };
@@ -285,6 +325,9 @@
                 if(form) {
                     form.style.display = 'none';
                     openReplyForms.delete(btn.dataset.id);
+                    // Очищаем сохранённый текст
+                    replyTexts.delete(btn.dataset.id);
+                    replyNames.delete(btn.dataset.id);
                 }
             };
         });
@@ -311,6 +354,11 @@
                 
                 if(nameInput) nameInput.value = '';
                 if(commentInput) commentInput.value = '';
+                
+                // Очищаем сохранённый текст
+                replyTexts.delete(id);
+                replyNames.delete(id);
+                
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
                     form.style.display = 'none';
@@ -410,5 +458,5 @@
     
     initCaptcha();
     loadFromSheets();
-    setInterval(refreshWithState, 10000);
+    setInterval(refreshWithState, 15000);
 })();
