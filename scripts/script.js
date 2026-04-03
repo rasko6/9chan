@@ -113,12 +113,23 @@
             const res = await fetch(url);
             const text = await res.text();
             
-            const match = text.match(/google\.visualization\.Query\.setResponse\((.+)\);?$/);
-            if (!match) {
-                throw new Error('Could not parse response');
+            // Extract JSON between the parentheses
+            let jsonText = text;
+            
+            // Remove /*O_o*/ prefix if present
+            if (jsonText.startsWith('/*O_o*/')) {
+                jsonText = jsonText.slice(7);
             }
             
-            const json = JSON.parse(match[1]);
+            // Extract from google.visualization.Query.setResponse(
+            const startIndex = jsonText.indexOf('(');
+            const endIndex = jsonText.lastIndexOf(')');
+            
+            if (startIndex !== -1 && endIndex !== -1) {
+                jsonText = jsonText.substring(startIndex + 1, endIndex);
+            }
+            
+            const json = JSON.parse(jsonText);
             const rows = json.table.rows;
             
             const remoteThreads = [];
@@ -127,7 +138,7 @@
                 if(row && row[0] && row[0].v !== null) {
                     let timestamp = new Date().toLocaleString();
                     if(row[6] && row[6].v) {
-                        const dateMatch = row[6].v.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
+                        const dateMatch = row[6].v.toString().match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
                         if(dateMatch) {
                             const date = new Date(
                                 parseInt(dateMatch[1]),
