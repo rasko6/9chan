@@ -1,7 +1,7 @@
 (function(){
     let threads = [];
     const BOARD = window.CURRENT_BOARD || 'b';
-    const SHEET_ID = '1JOR6YunxzIlrGMFgl_iifstE5QBsd9hZ2Ih8x6AfnZ8';
+    const API_URL = 'https://script.google.com/macros/s/AKfycby3ZyuS0E2SEaitmPhX_n-4ImD26ZMI99atr66b2y5DeOqt85MVoPvfuqsWOAz6Pgk/exec';
     
     function generateCaptcha() {
         const n1 = Math.floor(Math.random() * 10) + 1;
@@ -43,161 +43,31 @@
     
     document.querySelectorAll('.mascot-placeholder').forEach(e => e.remove());
     
-    function formatDate(dateValue) {
-        if(!dateValue) return new Date().toLocaleString();
-        if(typeof dateValue === 'string') {
-            const dateMatch = dateValue.match(/Date\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/);
-            if(dateMatch) {
-                return new Date(
-                    parseInt(dateMatch[1]),
-                    parseInt(dateMatch[2]),
-                    parseInt(dateMatch[3]),
-                    parseInt(dateMatch[4]),
-                    parseInt(dateMatch[5]),
-                    parseInt(dateMatch[6])
-                ).toLocaleString();
-            }
-            if(dateValue.match(/\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}/)) {
-                return dateValue;
-            }
-        }
-        return new Date().toLocaleString();
-    }
-    
-    function saveToLocal() {
-        try {
-            localStorage.setItem(`9chan_${BOARD}`, JSON.stringify(threads));
-        } catch(e) {
-            console.log('localStorage not available');
-        }
-    }
-    
-    async function saveToSheets() {
-        alert('⚠️ Сохранение в Google Sheets требует Google Apps Script. Данные сохранены локально.');
-        updateSyncStatus('📱 Локально', true);
-    }
-    
     async function loadFromSheets() {
         try {
-            // Get CSV instead of JSON
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=threads`;
-            const res = await fetch(url);
-            const csv = await res.text();
-            
-            // Parse CSV rows
-            const lines = csv.split('\n');
-            if(lines.length < 2) {
-                loadLocal();
-                return;
-            }
-            
-            const remoteThreads = [];
-            
-            // Skip header line (start from i=1)
-            for(let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if(!line) continue;
-                
-                // Parse CSV respecting quotes
-                const row = [];
-                let inQuote = false;
-                let current = '';
-                
-                for(let char of line) {
-                    if(char === '"') {
-                        inQuote = !inQuote;
-                    } else if(char === ',' && !inQuote) {
-                        row.push(current);
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                row.push(current);
-                
-                // Clean up quotes
-                for(let j = 0; j < row.length; j++) {
-                    if(row[j].startsWith('"') && row[j].endsWith('"')) {
-                        row[j] = row[j].substring(1, row[j].length - 1);
-                    }
-                }
-                
-                if(row[0] && row[0] !== 'id') {
-                    let timestamp = new Date().toLocaleString();
-                    if(row[6]) {
-                        timestamp = row[6];
-                    }
-                    
-                    let replies = [];
-                    if(row[7] && row[7] !== '[]') {
-                        try {
-                            replies = JSON.parse(row[7]);
-                        } catch(e) {
-                            replies = [];
-                        }
-                    }
-                    
-                    remoteThreads.push({
-                        id: parseInt(row[0]),
-                        board: row[1] || 'b',
-                        subject: row[2] || '',
-                        name: row[3] || 'Аноним',
-                        comment: row[4] || '',
-                        fileData: row[5] || null,
-                        timestamp: timestamp,
-                        replies: replies
-                    });
-                }
-            }
-            
-            const remoteFiltered = remoteThreads.filter(t => t.board === BOARD);
-            if(remoteFiltered.length > 0) {
-                threads = remoteFiltered;
-                saveToLocal();
-                render();
-                updateSyncStatus('✅ Синхронизировано');
-            } else {
-                loadLocal();
-            }
+            const res = await fetch(`${API_URL}?board=${BOARD}`);
+            const allThreads = await res.json();
+            threads = allThreads.filter(t => t.board === BOARD);
+            render();
+            updateSyncStatus('✅ Синхронизировано');
         } catch(e) {
-            console.error('Sync error:', e);
-            updateSyncStatus('⚠️ Офлайн', true);
-            loadLocal();
+            console.error('Load error:', e);
+            updateSyncStatus('⚠️ Ошибка загрузки', true);
         }
     }
     
-    function loadLocal() {
+    async function saveToSheets(data) {
         try {
-            const saved = localStorage.getItem(`9chan_${BOARD}`);
-            if(saved && JSON.parse(saved).length > 0) {
-                threads = JSON.parse(saved);
-                render();
-            } else {
-                threads = [{
-                    id: 1,
-                    board: BOARD,
-                    subject: 'Добро пожаловать на 9chan',
-                    name: 'Admin',
-                    comment: 'Привет! Это тестовый тред через новый БД :D',
-                    fileData: null,
-                    timestamp: '03.04.2026 14:12:17',
-                    replies: []
-                }];
-                saveToLocal();
-                render();
-            }
+            await fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            return true;
         } catch(e) {
-            threads = [{
-                id: 1,
-                board: BOARD,
-                subject: 'Добро пожаловать на 9chan',
-                name: 'Admin',
-                comment: 'Привет! Это тестовый тред через новый БД :D',
-                fileData: null,
-                timestamp: '03.04.2026 14:12:17',
-                replies: []
-            }];
-            render();
+            console.error('Save error:', e);
+            return false;
         }
     }
     
@@ -214,54 +84,81 @@
         return Math.max(...threads.map(t => t.id)) + 1;
     }
     
-    function addThread(subject, name, comment, fileData = null) {
+    async function addThread(subject, name, comment, fileData = null) {
         const newThread = {
             id: getNextId(),
             board: BOARD,
             subject: subject || 'Без темы',
             name: name || 'Аноним',
             comment: comment || '',
-            fileData: fileData,
-            timestamp: new Date().toLocaleString(),
-            replies: []
+            fileData: fileData || '',
+            timestamp: new Date().toISOString(),
+            replies: [],
+            pinned: false
         };
+        
         threads.unshift(newThread);
-        saveToLocal();
         render();
-        updateSyncStatus('💾 Сохранено локально', true);
+        
+        const saved = await saveToSheets(newThread);
+        if(saved) {
+            updateSyncStatus('✅ Тред создан', false);
+            setTimeout(() => loadFromSheets(), 1000);
+        } else {
+            updateSyncStatus('⚠️ Ошибка сохранения', true);
+        }
     }
     
-    function addReply(threadId, name, comment) {
+    async function addReply(threadId, name, comment) {
         const thread = threads.find(t => t.id === parseInt(threadId));
         if(thread) {
             const reply = {
                 name: name || 'Аноним',
                 comment: comment,
-                timestamp: new Date().toLocaleString()
+                timestamp: new Date().toISOString()
             };
             thread.replies.push(reply);
-            saveToLocal();
             render();
-            updateSyncStatus('💾 Ответ сохранен', true);
-            setTimeout(() => {
-                if(document.getElementById('syncStatusText')?.textContent === '💾 Ответ сохранен') {
-                    updateSyncStatus('📱 Локально', true);
-                }
-            }, 2000);
+            
+            const saved = await saveToSheets(thread);
+            if(saved) {
+                updateSyncStatus('✅ Ответ отправлен', false);
+            } else {
+                updateSyncStatus('⚠️ Ошибка сохранения', true);
+            }
         }
     }
     
     function render() {
         const c = document.getElementById('threadsContainer');
         if(!c) return;
+        
         if(!threads.length) {
             c.innerHTML = '<div class="loading-message">Нет тредов</div>';
             updateStats();
             return;
         }
+        
         let html = '';
         for(let t of threads) {
-            html += `<div class="thread-card"><div class="thread-header"><span class="thread-title">${escape(t.subject || 'Без темы')}</span><span class="thread-info">№${t.id} ${escape(t.name || 'Аноним')} ${t.timestamp}</span></div>${t.fileData ? `<img class="thread-image" src="${t.fileData}">` : ''}<div class="thread-comment">${escape(t.comment).replace(/\n/g, '<br>')}</div><button class="reply-btn" data-id="${t.id}">Ответить</button><div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div><div class="reply-form" id="reply-form-${t.id}" style="display:none"><input type="text" id="replyName-${t.id}" placeholder="Имя" maxlength="30"><textarea id="replyComment-${t.id}" rows="2" placeholder="Текст" maxlength="500"></textarea><button class="submit-reply" data-id="${t.id}">Отправить</button><button class="cancel-reply" data-id="${t.id}">Отмена</button></div></div>`;
+            html += `<div class="thread-card">
+                <div class="thread-header">
+                    <span class="thread-title">${escape(t.subject || 'Без темы')}</span>
+                    <span class="thread-info">
+                        №${t.id} ${escape(t.name || 'Аноним')} ${new Date(t.timestamp).toLocaleString()}
+                    </span>
+                </div>
+                ${t.fileData ? `<img class="thread-image" src="${t.fileData}">` : ''}
+                <div class="thread-comment">${escape(t.comment).replace(/\n/g, '<br>')}</div>
+                <button class="reply-btn" data-id="${t.id}">Ответить</button>
+                <div class="replies" id="replies-${t.id}">${renderReplies(t.replies)}</div>
+                <div class="reply-form" id="reply-form-${t.id}" style="display:none">
+                    <input type="text" id="replyName-${t.id}" placeholder="Имя" maxlength="30">
+                    <textarea id="replyComment-${t.id}" rows="2" placeholder="Текст" maxlength="500"></textarea>
+                    <button class="submit-reply" data-id="${t.id}">Отправить</button>
+                    <button class="cancel-reply" data-id="${t.id}">Отмена</button>
+                </div>
+            </div>`;
         }
         c.innerHTML = html;
         attachEvents();
@@ -272,7 +169,11 @@
         if(!r || !r.length) return '<div style="color:#777;padding:5px;">💬 Нет ответов</div>';
         let html = '';
         for(let rep of r) {
-            html += `<div class="reply"><strong>${escape(rep.name || 'Аноним')}</strong> <span style="color:#888;font-size:11px;">${rep.timestamp}</span><div>${escape(rep.comment)}</div></div>`;
+            html += `<div class="reply">
+                <strong>${escape(rep.name || 'Аноним')}</strong> 
+                <span style="color:#888;font-size:11px;">${new Date(rep.timestamp).toLocaleString()}</span>
+                <div>${escape(rep.comment)}</div>
+            </div>`;
         }
         return html;
     }
@@ -380,5 +281,5 @@
     }
     
     loadFromSheets();
-    setInterval(loadFromSheets, 60000);
+    setInterval(loadFromSheets, 30000);
 })();
