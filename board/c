@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>/c/ - 9chan</title>
+    <link rel="icon" href="../icon.png" type="image/png">
+    <link rel="stylesheet" href="../styles/base.css">
+    <link rel="stylesheet" href="../styles/base-phone.css">
+    <style>
+        .banner-deutsch {
+            background: #FFF200;
+            padding: 0;
+            margin-top: 12px;
+            text-align: center;
+        }
+        .banner-deutsch img {
+            display: block;
+            margin: 0 auto;
+        }
+        
+        /* GLITCH EFFECT OVERLAY - CSS only, no WebGL bugs */
+        body {
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 255, 0.03) 0px,
+                rgba(255, 0, 255, 0.03) 2px,
+                transparent 2px,
+                transparent 6px
+            );
+            animation: glitchScan 8s linear infinite;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
+            background: rgba(255, 0, 0, 0.02);
+            mix-blend-mode: multiply;
+            animation: chromaticAberration 0.2s infinite;
+        }
+        
+        @keyframes glitchScan {
+            0% { transform: translateY(0); opacity: 0.3; }
+            50% { transform: translateY(2px); opacity: 0.6; }
+            100% { transform: translateY(0); opacity: 0.3; }
+        }
+        
+        @keyframes chromaticAberration {
+            0% { background: rgba(255, 0, 0, 0.02); }
+            25% { background: rgba(0, 255, 0, 0.02); }
+            50% { background: rgba(0, 0, 255, 0.02); }
+            75% { background: rgba(255, 0, 255, 0.02); }
+            100% { background: rgba(255, 0, 0, 0.02); }
+        }
+        
+        /* Random glitch effect on images */
+        img {
+            animation: imageGlitch 3s infinite;
+        }
+        
+        @keyframes imageGlitch {
+            0%, 100% { filter: none; }
+            95% { filter: none; }
+            96% { filter: hue-rotate(90deg) contrast(200%); }
+            97% { filter: none; }
+            98% { filter: brightness(150%) saturate(200%); }
+            99% { filter: none; }
+        }
+        
+        /* Occasional text glitch */
+        .thread-card {
+            animation: textGlitch 10s infinite;
+            position: relative;
+        }
+        
+        @keyframes textGlitch {
+            0%, 98%, 100% { transform: none; }
+            99% { transform: skewX(2deg); }
+            99.5% { transform: skewX(-2deg); }
+        }
+        
+        /* Static noise overlay */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9997;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.04"/></svg>');
+            opacity: 0.15;
+            mix-blend-mode: overlay;
+        }
+    </style>
+</head>
+<body>
+    <!-- Noise overlay -->
+    <div class="noise-overlay"></div>
+    
+    <div class="container">
+        <header class="board-header">
+            <div class="logo-area">
+                <img src="../icon.png" alt="9chan" class="hitme-icon" onerror="this.src='../hitme.png'">
+                <h1>/c/ - Creepypasta Board</h1>
+                <div class="mascot-placeholder">
+                    <img src="../icon.png" alt="mascot" style="width:48px;height:48px;object-fit:contain;border-radius:50%;" onerror="this.src='../hitme.png'">
+                </div>
+            </div>
+            <div class="header-links">
+                <a href="../index.html">Главная</a>
+                <a href="#">Каталог</a>
+                <a href="#">Правила</a>
+                <a href="help.html">Помощь</a>
+            </div>
+            <div class="sync-status-bar">
+                <span id="syncStatusText" class="sync-status">🔄 Загрузка...</span>
+            </div>
+            <div class="auth-container" id="authContainer"></div>
+            <div class="banner-deutsch">
+                <img src="../c.png" alt="c board banner" onerror="this.src='../hitme.png'">
+            </div>
+        </header>
+
+        <nav class="board-nav">
+            <span class="board-label">Доски:</span>
+            <ul class="boards-list">
+                <li><a href="b.html">/b/</a></li>
+                <li><a href="g.html">/g/</a></li>
+                <li><a href="a.html">/a/</a></li>
+                <li><a href="pol.html">/pol/</a></li>
+                <li><a href="d.html">/d/</a></li>
+                <li><a href="k.html">/k/</a></li>
+                <li><a href="c.html">/c/</a></li>
+            </ul>
+        </nav>
+
+        <div class="thread-form-container">
+            <form id="newThreadForm" enctype="multipart/form-data">
+                <div class="form-row">
+                    <input type="text" id="threadSubject" placeholder="Тема (необязательно)" maxlength="100">
+                    <input type="text" id="threadName" placeholder="Имя (опционально)" maxlength="50">
+                </div>
+                <div class="form-row">
+                    <textarea id="threadComment" rows="3" placeholder="Комментарий..." required></textarea>
+                </div>
+                <div class="form-row captcha-row">
+                    <div class="captcha-container">
+                        <span id="captchaQuestion" class="captcha-question"></span>
+                        <input type="text" id="captchaAnswer" placeholder="Ответ" class="captcha-input">
+                    </div>
+                </div>
+                <div class="form-row file-row">
+                    <label for="threadFile" class="file-label">📁 Прикрепить файл</label>
+                    <input type="file" id="threadFile" accept="image/png,image/jpeg,image/gif,image/webp">
+                    <span class="file-name" id="fileChosen">Файл не выбран</span>
+                    <button type="submit" id="submitThread" class="german-btn">Создать тред</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="board-stats">
+            <span>🔥 Тредов: <span id="threadCount">0</span></span>
+        </div>
+
+        <div class="threads-container" id="threadsContainer">
+            <div class="loading-message">Загрузка...</div>
+        </div>
+
+        <footer class="board-footer">
+            <div class="footer-content">
+                <span>© 9chan — свобода слова, чёрный юмор, немецкое качество</span>
+                <img src="../icon.png" alt="footer-icon" class="footer-icon" onerror="this.src='../hitme.png'">
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        window.CURRENT_BOARD = 'c';
+    </script>
+    
+    <!-- Optional: JavaScript glitch effect (toggle every few seconds) -->
+    <script>
+        // Random glitch class toggle for extra effect
+        setInterval(() => {
+            if (Math.random() < 0.05) { // 5% chance every 3 seconds
+                document.body.classList.add('glitch-flash');
+                setTimeout(() => {
+                    document.body.classList.remove('glitch-flash');
+                }, 100);
+            }
+        }, 3000);
+        
+        // Add CSS for the flash effect
+        const style = document.createElement('style');
+        style.textContent = `
+            .glitch-flash::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.9);
+                pointer-events: none;
+                z-index: 10000;
+                animation: flash 0.1s ease-out;
+            }
+            @keyframes flash {
+                0% { opacity: 1; }
+                100% { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+    <script src="../scripts/script.js"></script>
+</body>
+</html>
