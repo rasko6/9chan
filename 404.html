@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>9chan - Страница не найдена</title>
+    <title>9chan - 404 Страница не найдена</title>
     <link rel="icon" href="icon.png" type="image/png">
     <style>
         * {
@@ -13,8 +13,10 @@
         }
 
         body {
-            background: #1a1a1a;
-            font-family: 'Courier New', monospace;
+            background: #eef2ff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 13px;
+            color: #000;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -23,105 +25,172 @@
         }
 
         .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: #0f0f0f;
-            border: 1px solid #d4af37;
-            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            background: #fff;
+            border: 1px solid #d9bfb7;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .board-header {
+            background: #af0a0a;
+            padding: 8px 15px;
+            border-bottom: 2px solid #800;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .hitme-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .header-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .header-links a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .header-links a:hover {
+            text-decoration: underline;
+        }
+
+        .error-content {
             padding: 40px 30px;
             text-align: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.7);
         }
 
-        .image-wrapper {
-            margin-bottom: 40px;
+        .error-image {
+            margin-bottom: 30px;
         }
 
-        .image-wrapper img {
+        .error-image img {
             width: 120px;
             height: 120px;
             object-fit: contain;
-            filter: drop-shadow(0 0 10px rgba(212,175,55,0.3));
-            animation: pulse 2s infinite;
+            filter: drop-shadow(0 0 10px rgba(175,10,10,0.2));
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.05); opacity: 1; }
-        }
-
-        .status {
+        .error-code {
             font-size: 6rem;
             font-weight: bold;
-            background: linear-gradient(135deg, #d4af37, #ffdd88);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 20px rgba(212,175,55,0.3);
+            color: #af0a0a;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
             margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
         }
 
-        .message {
+        .error-message {
             font-size: 1.2rem;
-            color: #aaa;
+            color: #789922;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .error-sub {
+            font-size: 0.9rem;
+            color: #666;
             margin-bottom: 30px;
-            letter-spacing: 2px;
         }
 
         .return-button {
             display: inline-block;
-            background: #2c2c2c;
-            border: 1px solid #d4af37;
-            color: #ffeaac;
-            padding: 12px 28px;
+            background: #f0f0f0;
+            border: 1px solid #d9bfb7;
+            color: #800;
+            padding: 10px 25px;
             font-weight: bold;
-            border-radius: 40px;
+            border-radius: 3px;
             cursor: pointer;
-            font-family: monospace;
-            font-size: 1rem;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.9rem;
             text-decoration: none;
             transition: all 0.2s;
         }
 
         .return-button:hover {
-            background: #d4af37;
-            color: #0f0f0f;
-            box-shadow: 0 0 15px rgba(212,175,55,0.5);
-            transform: translateY(-2px);
+            background: #af0a0a;
+            color: #fff;
+            border-color: #af0a0a;
         }
 
-        .german-stripe {
-            margin-top: 25px;
-            display: flex;
-            height: 4px;
-            border-radius: 2px;
-            overflow: hidden;
+        .board-footer {
+            background: #f0f0f0;
+            border-top: 1px solid #d9bfb7;
+            padding: 12px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
         }
-        .stripe-black { flex: 1; background: #000; }
-        .stripe-red { flex: 1; background: #dd0000; }
-        .stripe-gold { flex: 1; background: #d4af37; }
+
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .footer-icon {
+            width: 20px;
+            height: 20px;
+        }
 
         @media (max-width: 480px) {
-            .container { padding: 30px 20px; }
-            .status { font-size: 4rem; }
-            .message { font-size: 1rem; }
-            .return-button { padding: 10px 20px; font-size: 0.9rem; }
+            .error-code { font-size: 4rem; }
+            .error-content { padding: 30px 20px; }
+            .error-image img { width: 80px; height: 80px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="image-wrapper">
-            <img src="not_found.png" alt="404" style="width:100px;height:100px;object-fit:contain;" onerror="this.src='hitme.png'">
+        <div class="board-header">
+            <div class="logo-area">
+                <img src="hitme.png" alt="9chan" class="hitme-icon" onerror="this.src='icon.png'">
+                <h1>9chan</h1>
+            </div>
+            <div class="header-links">
+                <a href="https://rasko6.github.io/9chan/">Startseite</a>
+                <a href="https://rasko6.github.io/9chan/board/b.html">/b/</a>
+                <a href="https://rasko6.github.io/9chan/rules.html">Regeln</a>
+            </div>
         </div>
-        <div class="status">404</div>
-        <div class="message">SEITE NICHT GEFUNDEN</div>
-        <div class="message" style="font-size:0.8rem; margin-top:-15px; margin-bottom:25px;">страница не найдена</div>
-        <a href="https://rasko6.github.io/9chan/" class="return-button">← ZURÜCK ZUR STARTSEITE</a>
-        <div class="german-stripe">
-            <div class="stripe-black"></div>
-            <div class="stripe-red"></div>
-            <div class="stripe-gold"></div>
+
+        <div class="error-content">
+            <div class="error-image">
+                <img src="not_found.png" alt="404" onerror="this.src='hitme.png'">
+            </div>
+            <div class="error-code">404</div>
+            <div class="error-message">SEITE NICHT GEFUNDEN</div>
+            <div class="error-sub">страница не найдена · page not found</div>
+            <a href="https://rasko6.github.io/9chan/" class="return-button">← ZURÜCK ZUR STARTSEITE</a>
+        </div>
+
+        <div class="board-footer">
+            <div class="footer-content">
+                <img src="icon.png" alt="9chan" class="footer-icon" onerror="this.style.display='none'">
+                <span>© 9chan - Анонимный имиджборд</span>
+            </div>
         </div>
     </div>
 </body>
