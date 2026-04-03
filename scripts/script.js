@@ -1,10 +1,10 @@
 (function(){
     let threads = [];
-    let activeReplyForm = null; // Для отслеживания открытой формы
+    let openReplyForms = new Set(); // Храним ID открытых форм
     const BOARD = window.CURRENT_BOARD || 'b';
     const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
     
-    // Капча - глобальная
+    // Капча
     let currentCaptcha = null;
     let captchaQuestionElement = null;
     let captchaAnswerElement = null;
@@ -53,7 +53,6 @@
         return true;
     }
     
-    // Инициализация капчи
     function initCaptcha() {
         captchaQuestionElement = document.getElementById('captchaQuestion');
         captchaAnswerElement = document.getElementById('captchaAnswer');
@@ -169,6 +168,26 @@
         }
     }
     
+    function saveOpenForms() {
+        // Сохраняем ID тредов, у которых форма открыта
+        openReplyForms.clear();
+        document.querySelectorAll('.reply-form').forEach(form => {
+            if(form.style.display === 'block') {
+                const id = form.id.replace('reply-form-', '');
+                openReplyForms.add(id);
+            }
+        });
+    }
+    
+    function restoreOpenForms() {
+        openReplyForms.forEach(id => {
+            const form = document.getElementById(`reply-form-${id}`);
+            if(form) {
+                form.style.display = 'block';
+            }
+        });
+    }
+    
     function render() {
         const c = document.getElementById('threadsContainer');
         if(!c) return;
@@ -216,6 +235,7 @@
         c.innerHTML = html;
         attachEvents();
         updateStats();
+        restoreOpenForms(); // Восстанавливаем открытые формы
     }
     
     function renderReplies(r) {
@@ -246,15 +266,19 @@
             btn.onclick = (e) => {
                 e.preventDefault();
                 const id = btn.dataset.id;
-                // Закрываем все формы
-                document.querySelectorAll('.reply-form').forEach(f => {
-                    if(f.id !== `reply-form-${id}`) {
-                        f.style.display = 'none';
-                    }
-                });
                 const form = document.getElementById(`reply-form-${id}`);
                 if(form) {
-                    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+                    const isOpen = form.style.display === 'block';
+                    // Закрываем все формы
+                    document.querySelectorAll('.reply-form').forEach(f => {
+                        f.style.display = 'none';
+                    });
+                    openReplyForms.clear();
+                    // Если форма была закрыта - открываем
+                    if(!isOpen) {
+                        form.style.display = 'block';
+                        openReplyForms.add(id);
+                    }
                 }
             };
         });
@@ -263,7 +287,10 @@
         document.querySelectorAll('.cancel-reply').forEach(btn => {
             btn.onclick = () => {
                 const form = document.getElementById(`reply-form-${btn.dataset.id}`);
-                if(form) form.style.display = 'none';
+                if(form) {
+                    form.style.display = 'none';
+                    openReplyForms.delete(btn.dataset.id);
+                }
             };
         });
         
@@ -291,7 +318,10 @@
                 if(nameInput) nameInput.value = '';
                 if(commentInput) commentInput.value = '';
                 const form = document.getElementById(`reply-form-${id}`);
-                if(form) form.style.display = 'none';
+                if(form) {
+                    form.style.display = 'none';
+                    openReplyForms.delete(id);
+                }
                 
                 btn.disabled = false;
                 btn.textContent = originalText;
@@ -379,8 +409,13 @@
         };
     }
     
-    // Инициализация капчи при загрузке
+    // Функция обновления с сохранением состояния форм
+    async function refreshWithState() {
+        saveOpenForms();
+        await loadFromSheets();
+    }
+    
     initCaptcha();
     loadFromSheets();
-    setInterval(loadFromSheets, 10000);
+    setInterval(refreshWithState, 10000);
 })();
