@@ -1,259 +1,196 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
+<html lang="ru" style="--vsc-domain: &quot;rasko6.github.io&quot;;"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Каталог - 9chan</title>
-    <link rel="icon" href="../icon.png" type="image/png">
-    <link rel="stylesheet" href="../styles/base.css">
-    <link rel="stylesheet" href="../styles/base-phone.css">
+    <title>9chan - Доски</title>
+    <link rel="icon" href="icon.png" type="image/png">
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/base-phone.css">
     <style>
-        .catalog-container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 15px;
-        }
-        
-        .catalog-header-bar {
-            background: #af0a0a;
-            padding: 10px 15px;
-            border-bottom: 2px solid #800;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .catalog-title {
-            font-size: 1.5rem;
-            color: #fff;
-            font-weight: bold;
-        }
-        
-        .catalog-sub {
-            color: #ffd700;
-            font-size: 12px;
-        }
-        
-        .board-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        
-        .board-card {
+        .boards-catalog {
+            padding: 20px;
             background: #faf0e6;
+            margin: 15px;
+            border-radius: 0;
             border: 1px solid #d9bfb7;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.1s;
         }
-        
+        .boards-catalog h2 {
+            color: #af0a0a;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: normal;
+        }
+        .boards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .board-card {
+            background: #fff;
+            border: 1px solid #d9bfb7;
+            border-radius: 0;
+            padding: 12px;
+            text-align: center;
+            text-decoration: none;
+            transition: none;
+            display: block;
+        }
         .board-card:hover {
             border-color: #af0a0a;
+            background: #f0f0f0;
+            transform: none;
         }
-        
-        /* Исправленное имя класса, чтобы не конфликтовать с шапкой */
-        .card-top {
-            background: #af0a0a;
-            color: white;
-            padding: 10px 15px;
-            font-size: 1.2rem;
+        .board-name {
+            font-size: 1.5rem;
             font-weight: bold;
+            color: #00e;
+            display: block;
+            margin-bottom: 5px;
         }
+        .board-name:hover {
+            color: #f00;
+        }
+        .board-desc {
+            font-size: 0.7rem;
+            color: #789922;
+        }
+.welcome-section {
+    padding: 20px;
+    background: #faf0e6; /* Твой цвет фона */
+    margin: 15px;
+    border: 1px solid #d9bfb7; /* Твоя рамка */
+    text-align: center;
+}
         
-        .board-description {
-            padding: 15px;
-            color: #333;
-            font-size: 13px;
-            line-height: 1.5;
-            flex-grow: 1; /* Чтобы карточки были одной высоты */
-        }
-        
-        .board-stats {
-            padding: 10px 15px;
-            background: #f0e0d6;
-            border-top: 1px solid #d9bfb7;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 11px;
-        }
-        
-        .board-link {
-            color: #af0a0a;
-            text-decoration: none;
-            font-weight: bold;
-            border: 1px solid #af0a0a;
-            padding: 2px 8px;
-        }
-        
-        .board-link:hover {
-            background: #af0a0a;
-            color: #fff;
-        }
+.welcome-text {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #111;
+    max-width: 900px;
+    margin: 0 auto;
+    font-family: sans-serif;
+}
+        .welcome-box {
+    background: #faf0e6; /* Чуть темнее основного фона для акцента */
+    border: 1px solid #d9bfb7;
+    margin: 15px;
+    padding: 20px;
+    text-align: center;
+}
 
-        @media (max-width: 768px) {
-            .board-grid { grid-template-columns: 1fr; }
-        }
+.welcome-box h2 {
+    color: #af0a0a;
+    font-size: 1.5rem;
+    font-weight: normal;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.welcome-box p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 800px;
+    margin: 0 auto;
+    color: #111;
+}
+
+
+
     </style>
 </head>
 <body>
     <div class="container">
         <header class="board-header">
             <div class="logo-area">
-                <img src="icon.png" alt="9chan" class="hitme-icon" onerror="this.src='icon.png'">
+                <img src="icon.png" alt="9chan" class="hitme-icon" onerror="this.src='hitme.png'">
                 <h1>9chan</h1>
             </div>
             <div class="header-links">
-                <a href="../index.html">Главная</a>
-                <a href="../rules.html">Правила</a>
+                <a href="index.html">Главная</a>
+                <a href="cat.html">Каталог</a>
+                <a href="rules.html">Правила</a>
                 <a href="help.html">Помощь</a>
             </div>
-        </header>
-
-        <div class="catalog-container">
-            <div class="catalog-header-bar">
-                <span class="catalog-title">📋 КАТАЛОГ</span>
-                <span class="catalog-sub">выбор доски</span>
+            <div class="banner-deutsch">
+                <span>🇩🇪 Einheit, Recht, Freiheit 🇩🇪</span>
             </div>
-
-            <div class="board-grid">
-                <!-- /b/ -->
-                <div class="board-card">
-                    <div class="card-top">/b/ - Разное</div>
-                    <div class="board-description">
-                        Главная доска для всего подряд. Мемы, обсуждения, треш и угар. 
-                        Здесь нет ограничений по темам.
-                    </div>
-                    <div class="board-stats">
-                        <span>🔥 Тредов: <span id="bCount">...</span></span>
-                        <a href="board/b.html" class="board-link">Войти</a>
-                    </div>
-                </div>
-
-                <!-- /g/ -->
-                <div class="board-card">
-                    <div class="card-top">/g/ - Технологии</div>
-                    <div class="board-description">
-                        Технологии, программирование, железо и IT-новости. 
-                        Место для гиков и кодеров.
-                    </div>
-                    <div class="board-stats">
-                        <span>🔥 Тредов: <span id="gCount">...</span></span>
-                        <a href="g.html" class="board-link">Войти</a>
-                    </div>
-                </div>
-
-                <!-- /pol/ -->
-                <div class="board-card">
-                    <div class="card-top">/pol/ - Политика</div>
-                    <div class="board-description">
-                        Политические дискуссии, новости и обсуждение мировых событий.
-                    </div>
-                    <div class="board-stats">
-                        <span>🔥 Тредов: <span id="polCount">...</span></span>
-                        <a href="board/pol.html" class="board-link">Войти</a>
-                    </div>
-                </div>
-                
-                <!-- /d/ -->
-                <div class="board-card">
-                    <div class="card-top">/d/ - Изображения</div>
-                    <div class="board-description">
-                        Картинки, обои, арты, фотографии и всяческий визуальный контент.
-                    </div>
-                    <div class="board-stats">
-                        <span>🔥 Тредов: <span id="dCount">...</span></span>
-                        <a href="board/d.html" class="board-link">Войти</a>
-                    </div>
-                </div>
+        </header>
+<div style="background: #f0e0d6; border: 1px solid #d9bfb7; margin: 15px; padding: 25px; text-align: center;">
+    
+    <h2 style="color: #af0a0a; margin: 0 0 15px 0; font-size: 1.5rem; font-weight: normal;">
+        Добро пожаловать на 9chan
+    </h2>
+    <p style="max-width: 800px; margin: 0 auto; font-size: 0.9rem; line-height: 1.6; color: #111;">
+        9chan — это независимая площадка для свободного общения, где ценятся ирония, 
+        немецкая культура и старые традиции анонимности. Здесь нет регистрации и лишних
+        ограничений. Мы создали это место для тех, кто скучает по классическим бордам: 
+        минимум дизайна, максимум содержания. ПРИВЕТ
+    </p>
+</div>
+        <div class="boards-catalog">
+            <h2>📌 Выберите доску</h2>
+            <div class="boards-grid" id="boardsGrid">
+                <a href="board/b.html" class="board-card">
+                    <span class="board-name">/b/</span>
+                    <span class="board-desc">Разное</span>
+                </a>
+            
+                <a href="board/g.html" class="board-card">
+                    <span class="board-name">/g/</span>
+                    <span class="board-desc">Технологии &amp; программирование</span>
+                </a>
+            
+                <a href="board/a.html" class="board-card">
+                    <span class="board-name">/a/</span>
+                    <span class="board-desc">Аниме &amp; манга</span>
+                </a>
+            
+                <a href="board/pol.html" class="board-card">
+                    <span class="board-name">/pol/</span>
+                    <span class="board-desc">Политика</span>
+                </a>
+            
+                <a href="board/d.html" class="board-card">
+                    <span class="board-name">/d/</span>
+                    <span class="board-desc">Изображения</span>
+                </a>
+            
+                <a href="board/k.html" class="board-card">
+                    <span class="board-name">/k/</span>
+                    <span class="board-desc">Оружие</span>
+                </a>
             </div>
         </div>
 
-        <footer class="board-footer" style="margin-top: 30px; text-align: center; padding: 20px; color: #666;">
-            © 9chan — немецкое качество
+        <footer class="board-footer">
+            <div class="footer-content">
+                <span>© 9chan — свобода слова, чёрный юмор, немецкое качество</span>
+                <img src="icon.png" alt="footer-icon" class="footer-icon" onerror="this.src='hitme.png'">
+            </div>
         </footer>
     </div>
-</body>
-</html>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxwH31mrpRnc8fISbJjx9ofaueHKkTcjBqTce_w3xh2tsaw5p633DXY9N6tPrgjwE4H/exec';
-        
-        async function loadAllThreads() {
-            try {
-                const res = await fetch(`${API_URL}`);
-                const allThreads = await res.json();
-                
-                // Считаем треды по доскам
-                const boards = ['b', 'g', 'a', 'pol', 'd', 'k', 'c'];
-                boards.forEach(board => {
-                    const count = allThreads.filter(t => t.board === board).length;
-                    const el = document.getElementById(`${board}Count`);
-                    if(el) el.textContent = count;
-                });
-                
-                // Последние 10 тредов
-                const recent = [...allThreads]
-                    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                    .slice(0, 10);
-                
-                const container = document.getElementById('recentThreadsContainer');
-                if(recent.length === 0) {
-                    container.innerHTML = '<div class="no-threads">Нет тредов. Будьте первыми!</div>';
-                    return;
-                }
-                
-                let html = '';
-                for(let t of recent) {
-                    let boardName = '';
-                    switch(t.board) {
-                        case 'b': boardName = '/b/ - Разное'; break;
-                        case 'g': boardName = '/g/ - Технологии'; break;
-                        case 'a': boardName = '/a/ - Аниме'; break;
-                        case 'pol': boardName = '/pol/ - Политика'; break;
-                        case 'd': boardName = '/d/ - Изображения'; break;
-                        case 'k': boardName = '/k/ - Оружие'; break;
-                        case 'c': boardName = '/c/ - Creepypasta'; break;
-                        default: boardName = `/${t.board}/`;
-                    }
-                    
-                    let dateStr = 'Дата неизвестна';
-                    try {
-                        if(t.timestamp) dateStr = new Date(t.timestamp).toLocaleString();
-                    } catch(e) {}
-                    
-                    let shortComment = t.comment.length > 100 ? t.comment.substring(0, 100) + '...' : t.comment;
-                    
-                    html += `<div class="thread-preview">
-                        ${t.fileData ? `<img class="thread-preview-image" src="${t.fileData}" onerror="this.style.display='none'">` : '<div style="width:60px;"></div>'}
-                        <div class="thread-preview-info">
-                            <div class="thread-preview-title">${escape(t.subject || 'Без темы')}</div>
-                            <div class="thread-preview-board">📌 ${boardName} | №${t.id} | ${dateStr}</div>
-                            <div class="thread-preview-comment">${escape(shortComment)}</div>
-                            <a href="${t.board}.html" style="font-size:11px; color:#800;">→ Перейти в тред</a>
-                        </div>
-                    </div>`;
-                }
-                container.innerHTML = html;
-            } catch(e) {
-                console.error('Error loading catalog:', e);
-                document.getElementById('recentThreadsContainer').innerHTML = '<div class="no-threads">Ошибка загрузки тредов</div>';
-                ['b','g','a','pol','d','k','c'].forEach(board => {
-                    const el = document.getElementById(`${board}Count`);
-                    if(el) el.textContent = 'ошибка';
-                });
-            }
+        const boards = [
+            { name: 'b', desc: 'Разное', color: '#d4af37' },
+            { name: 'g', desc: 'Технологии & программирование', color: '#4caf50' },
+            { name: 'a', desc: 'Аниме & манга', color: '#ff69b4' },
+            { name: 'pol', desc: 'Политика', color: '#ff4444' },
+            { name: 'd', desc: 'Изображения', color: '#2196f3' },
+            { name: 'k', desc: 'Оружие', color: '#795548' }
+        ];
+
+        const grid = document.getElementById('boardsGrid');
+        if (grid) {
+            grid.innerHTML = boards.map(b => `
+                <a href="board/${b.name}.html" class="board-card">
+                    <span class="board-name">/${b.name}/</span>
+                    <span class="board-desc">${b.desc}</span>
+                </a>
+            `).join('');
         }
-        
-        function escape(s) {
-            if(!s) return '';
-            return s.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-        }
-        
-        loadAllThreads();
-        setInterval(loadAllThreads, 30000);
     </script>
-</body>
-</html>
+
+
+<div id="my-extension-buddy"><div id="my-buddy-bubble" style="display: none;">Это мой форум!!!!</div><img src="chrome-extension://gdoglpbhoblgjnbelcpbofibfbdjkohf/pointy.png" id="buddy-image"></div></body></html>
